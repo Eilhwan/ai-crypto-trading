@@ -6,13 +6,12 @@ from models.schemas import AnalyzeResponse, TradeResult
 
 OPENCLAW_URL = os.getenv("OPENCLAW_URL", "")
 OPENCLAW_TOKEN = os.getenv("OPENCLAW_TOKEN", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 
-def _openclaw_enabled() -> bool:
-    return bool(OPENCLAW_URL and OPENCLAW_TOKEN)
-
-
-def _build_notify_text(response: AnalyzeResponse) -> str:
+def _build_analysis_text(response: AnalyzeResponse) -> str:
     emoji = "📈" if response.score > 0 else "📉"
     action_label = {
         "notify": "⚠️ 승인 요청",
@@ -54,38 +53,73 @@ def _build_trade_text(result: TradeResult) -> str:
     )
 
 
-async def _post_to_openclaw(text: str) -> None:
-    headers = {
-        "Authorization": f"Bearer {OPENCLAW_TOKEN}",
-        "Content-Type": "application/json",
-    }
-    payload = {"message": text}
+async def _send_openclaw(text: str) -> None:
+    if not (OPENCLAW_URL and OPENCLAW_TOKEN):
+        return
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.post(
                 f"{OPENCLAW_URL}/api/message",
-                json=payload,
-                headers=headers,
+                json={"message": text},
+                headers={"Authorization": f"Bearer {OPENCLAW_TOKEN}", "Content-Type": "application/json"},
             )
             if resp.status_code >= 400:
-                logger.warning(f"OpenClaw notification failed: {resp.status_code} {resp.text[:100]}")
+                logger.warning(f"OpenClaw notification failed: {resp.status_code}")
             else:
                 logger.info("OpenClaw notification sent.")
     except Exception as e:
         logger.warning(f"OpenClaw unreachable: {e}")
 
 
-async def notify_analysis(response: AnalyzeResponse) -> None:
-    if not _openclaw_enabled():
-        logger.debug("OpenClaw not configured, skipping notification.")
+async def _send_telegram(text: str) -> None:
+    if not (TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID):
         return
-    text = _build_notify_text(response)
-    await _post_to_openclaw(text)
+    # Strip markdown bold markers for Telegram compatibility
+    clean = text.replace("**", "*")
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json={
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": clean,
+                "parse_mode": "Markdown",
+            })
+            if resp.status_code >= 400:
+                logger.warning(f"Telegram notification failed: {resp.status_code} {resp.text[:100]}")
+            else:
+                logger.info("Telegram notification sent.")
+    except Exception as e:
+        logger.warning(f"Telegram unreachable: {e}")
+
+
+async def _send_discord(text: str) -> None:
+    if not DISCORD_WEBHOOK_URL:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(DISCORD_WEBHOOK_URL, json={
+                "content": text,
+                "username": "AI Crypto Trading",
+            })
+            if resp.status_code >= 400:
+                logger.warning(f"Discord notification failed: {resp.status_code}")
+            else:
+                logger.info("Discord notification sent.")
+    except Exception as e:
+        logger.warning(f"Discord unreachable: {e}")
+
+
+async def notify_analysis(response: AnalyzeResponse) -> None:
+    text = _build_analysis_text(response)
+    await _send_openclaw(text)
+    await _send_telegram(text)
+    await _send_discord(text)
 
 
 async def notify_trade(result: TradeResult) -> None:
-    if not _openclaw_enabled():
-        return
     text = _build_trade_text(result)
-    if text:
-        await _post_to_openclaw(text)
+    if not text:
+        return
+    await _send_openclaw(text)
+    await _send_telegram(text)
+    await _send_discord(text)

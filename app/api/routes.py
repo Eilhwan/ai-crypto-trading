@@ -1,4 +1,5 @@
 import os
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -7,6 +8,7 @@ from loguru import logger
 from models.schemas import (
     AnalyzeRequest, AnalyzeResponse, TradeAction, TradeResult, MarketData,
     WebhookNewsRequest, FearGreedResponse, SchedulerStatus,
+    BacktestConfig, BacktestResult,
 )
 from services.sentiment import analyze_sentiment
 from services.market import get_market_data
@@ -15,7 +17,8 @@ from services.notifier import notify_analysis, notify_trade
 from services.fear_greed import get_fear_greed, get_fear_greed_response
 from services.scheduler import get_scheduler_status, run_analysis_cycle
 from traders.bybit_trader import execute_trade, build_trade_signal
-from database.db import get_db, AnalysisLog, TradeLog
+from backtest.engine import run_backtest
+from database.db import get_db, AnalysisLog, TradeLog, BacktestLog
 
 router = APIRouter()
 
@@ -93,9 +96,59 @@ async def scheduler_status():
 @router.post("/scheduler/trigger")
 async def scheduler_trigger():
     logger.info("Manual scheduler trigger requested")
-    import asyncio
     asyncio.create_task(run_analysis_cycle())
     return {"message": "Analysis cycle triggered"}
+
+
+# ── Backtesting ──────────────────────────────────────────────────────────────
+
+@router.post("/backtest/run", response_model=BacktestResult)
+async def backtest_run(config: BacktestConfig, db: AsyncSession = Depends(get_db)):
+    logger.info(f"Backtest request: {config.symbol} {config.days}d interval={config.interval}")
+    try:
+        result = await asyncio.get_event_loop().run_in_executor(None, run_backtest, config)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    db.add(BacktestLog(
+        symbol=result.symbol,
+        days=result.days,
+        interval=config.interval,
+        initial_capital=result.initial_capital,
+        final_capital=result.final_capital,
+        total_return_pct=result.total_return_pct,
+        max_drawdown_pct=result.max_drawdown_pct,
+        win_rate=result.win_rate,
+        sharpe_ratio=result.sharpe_ratio or 0.0,
+        total_trades=result.total_trades,
+        candles_analyzed=result.candles_analyzed,
+    ))
+    await db.commit()
+    return result
+
+
+@router.get("/backtest/results")
+async def backtest_results(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(BacktestLog).order_by(desc(BacktestLog.created_at)).limit(limit)
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "id": r.id,
+            "symbol": r.symbol,
+            "days": r.days,
+            "interval": r.interval,
+            "total_return_pct": r.total_return_pct,
+            "max_drawdown_pct": r.max_drawdown_pct,
+            "win_rate": r.win_rate,
+            "sharpe_ratio": r.sharpe_ratio,
+            "total_trades": r.total_trades,
+            "candles_analyzed": r.candles_analyzed,
+            "created_at": r.created_at,
+        }
+        for r in rows
+    ]
 
 
 @router.get("/market/{symbol}", response_model=MarketData)

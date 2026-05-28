@@ -93,3 +93,46 @@ class SchedulerStatus(BaseModel):
     next_run: Optional[str] = None
     last_run: Optional[str] = None
     last_run_articles: int = 0
+
+
+# ── Backtesting ─────────────────────────────────────────────────────────────
+
+class BacktestConfig(BaseModel):
+    symbol: str = "BTCUSDT"
+    days: int = Field(default=30, ge=1, le=365)
+    initial_capital: float = Field(default=10000.0, gt=0)
+    position_pct: float = Field(default=10.0, gt=0, le=100)
+    # interval: 60=1h, 240=4h, D=daily
+    interval: str = Field(default="240", pattern=r"^(60|120|240|360|720|D)$")
+    # Fixed inputs replacing live news / fear-greed during simulation
+    news_score: float = Field(default=0.0, ge=-7.0, le=7.0)
+    fear_greed: float = Field(default=50.0, ge=0, le=100)
+    # Score thresholds (lower than live defaults so pure-technical signals fire)
+    entry_score: float = Field(default=8.0)
+    exit_score: float = Field(default=-5.0)
+
+
+class BacktestTrade(BaseModel):
+    index: int
+    side: str
+    price: float
+    qty: float
+    pnl_usdt: float
+    pnl_pct: float
+    score: float
+
+
+class BacktestResult(BaseModel):
+    symbol: str
+    days: int
+    initial_capital: float
+    final_capital: float
+    total_return_pct: float
+    max_drawdown_pct: float
+    win_rate: float
+    sharpe_ratio: Optional[float] = None
+    total_trades: int
+    winning_trades: int
+    losing_trades: int
+    candles_analyzed: int
+    trades: list[BacktestTrade]

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Float, DateTime, Text, Boolean, Index, func
+from sqlalchemy import String, Float, DateTime, Text, Boolean, Integer, func
 from datetime import datetime
 import os
 
@@ -36,7 +36,7 @@ class TradeLog(Base):
     price: Mapped[float] = mapped_column(Float, default=0.0)
     order_id: Mapped[str] = mapped_column(String(100), default="")
     score: Mapped[float] = mapped_column(Float)
-    success: Mapped[bool] = mapped_column(default=False)
+    success: Mapped[bool] = mapped_column(Boolean, default=False)
     reason: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -46,6 +46,24 @@ class SeenUrl(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     url: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class BacktestLog(Base):
+    __tablename__ = "backtest_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(20))
+    days: Mapped[int] = mapped_column(Integer, default=30)
+    interval: Mapped[str] = mapped_column(String(10), default="240")
+    initial_capital: Mapped[float] = mapped_column(Float)
+    final_capital: Mapped[float] = mapped_column(Float)
+    total_return_pct: Mapped[float] = mapped_column(Float)
+    max_drawdown_pct: Mapped[float] = mapped_column(Float)
+    win_rate: Mapped[float] = mapped_column(Float)
+    sharpe_ratio: Mapped[float] = mapped_column(Float, default=0.0)
+    total_trades: Mapped[int] = mapped_column(Integer, default=0)
+    candles_analyzed: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
