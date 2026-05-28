@@ -9,6 +9,7 @@ from models.schemas import (
 from services.sentiment import analyze_sentiment
 from services.market import get_market_data
 from services.scoring import calculate_total_score, determine_action, build_reasoning
+from services.notifier import notify_analysis, notify_trade
 from traders.bybit_trader import execute_trade, build_trade_signal
 from database.db import get_db, AnalysisLog, TradeLog
 
@@ -35,17 +36,7 @@ async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
     db.add(log)
     await db.commit()
 
-    if action == TradeAction.AUTO_TRADE:
-        signal = build_trade_signal(
-            symbol=request.symbol,
-            score=score,
-            qty=0.001,  # 초기: 최소 수량으로 고정
-            reason=reasoning,
-        )
-        trade_result = await execute_trade(signal)
-        logger.info(f"Auto trade result: {trade_result.message}")
-
-    return AnalyzeResponse(
+    response = AnalyzeResponse(
         symbol=request.symbol,
         score=score,
         action=action,
@@ -53,6 +44,22 @@ async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
         sentiments=sentiments,
         reasoning=reasoning,
     )
+
+    if action == TradeAction.AUTO_TRADE:
+        signal = build_trade_signal(
+            symbol=request.symbol,
+            score=score,
+            qty=0.001,
+            reason=reasoning,
+        )
+        trade_result = await execute_trade(signal)
+        logger.info(f"Auto trade result: {trade_result.message}")
+        await notify_trade(trade_result)
+
+    if action in (TradeAction.NOTIFY, TradeAction.AUTO_TRADE):
+        await notify_analysis(response)
+
+    return response
 
 
 @router.get("/market/{symbol}", response_model=MarketData)

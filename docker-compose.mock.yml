@@ -13,3 +13,11 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # OpenClaw(18789) 접근용
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

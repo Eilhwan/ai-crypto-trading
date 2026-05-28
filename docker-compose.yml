@@ -10,8 +10,17 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # OpenClaw(18789), Ollama(11434) 접근용
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   ollama:
     image: ollama/ollama:latest
@@ -21,6 +30,12 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   ollama_data:

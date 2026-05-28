@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phase 2 설계 보고서 — AI Crypto Trading System</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222535;
+      --border: #2e3248;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --accent4: #ffd166;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --orange: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #12142a 0%, #1a1d27 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0,212,170,0.10) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .phase-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,212,170,0.12);
+      border: 1px solid rgba(0,212,170,0.35);
+      color: var(--accent2);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+    .phase-label .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 6px var(--accent2);
+    }
+    header h1 {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+    header h1 .phase { color: var(--accent2); }
+    header h1 .title { color: var(--text); }
+    header .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 620px;
+      line-height: 1.6;
+    }
+    .header-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .hchip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .hchip strong { color: var(--text); }
+
+    /* ── Layout ── */
+    .container { max-width: 1120px; margin: 0 auto; padding: 44px 24px 80px; }
+    section { margin-bottom: 60px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    h2 {
+      font-size: 23px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .sub {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Phase Journey ── */
+    .journey {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin-bottom: 40px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .journey-item {
+      flex: 1;
+      min-width: 140px;
+      position: relative;
+    }
+    .journey-item::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      right: -1px;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .journey-item:last-child::after { display: none; }
+    .j-circle {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .j-done .j-circle { background: rgba(34,197,94,0.15); border: 2px solid var(--green); color: var(--green); }
+    .j-active .j-circle {
+      background: rgba(0,212,170,0.15);
+      border: 2px solid var(--accent2);
+      color: var(--accent2);
+      box-shadow: 0 0 0 4px rgba(0,212,170,0.08);
+    }
+    .j-pending .j-circle { background: var(--surface2); border: 2px solid var(--border); color: var(--text-muted); }
+    .j-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+    .j-done .j-name { color: var(--green); }
+    .j-active .j-name { color: var(--accent2); }
+    .j-pending .j-name { color: var(--text-muted); }
+    .j-desc { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+    /* ── Arch Diagram ── */
+    .arch {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 28px;
+    }
+    .arch-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 16px;
+    }
+    .arch-row:last-child { margin-bottom: 0; }
+    .anode {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+    .anode.new {
+      border-color: rgba(0,212,170,0.4);
+      background: rgba(0,212,170,0.06);
+    }
+    .anode.existing {
+      border-color: rgba(108,99,255,0.35);
+      background: rgba(108,99,255,0.06);
+    }
+    .anode .aicon { font-size: 18px; margin-bottom: 4px; }
+    .anode .aname { font-size: 12px; font-weight: 700; }
+    .anode .asub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .anode .abadge {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      margin-top: 4px;
+    }
+    .ab-new { background: rgba(0,212,170,0.15); color: var(--accent2); }
+    .ab-exist { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .aarrow {
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+    .arch-or {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 4px 0;
+    }
+
+    /* ── Task Cards ── */
+    .tasks { display: flex; flex-direction: column; gap: 20px; }
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .task-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-num {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .num-1 { background: rgba(0,212,170,0.15); color: var(--accent2); }
+    .num-2 { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .num-3 { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .num-4 { background: rgba(249,115,22,0.15); color: var(--orange); }
+    .task-title {
+      flex: 1;
+    }
+    .task-title h3 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+    .task-title p { font-size: 12px; color: var(--text-muted); }
+    .task-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tbadge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+    .tb-high { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .tb-med { background: rgba(234,179,8,0.12); color: var(--yellow); border: 1px solid rgba(234,179,8,0.2); }
+    .tb-new { background: rgba(0,212,170,0.12); color: var(--accent2); border: 1px solid rgba(0,212,170,0.2); }
+    .tb-day { background: rgba(100,116,139,0.12); color: var(--text-muted); border: 1px solid rgba(100,116,139,0.2); }
+
+    .task-body { padding: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .task-section h4 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    /* checklist */
+    .checklist { display: flex; flex-direction: column; gap: 7px; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* code block */
+    .code {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .c-comment { color: #4a5568; }
+    .c-key { color: #7dd3fc; }
+    .c-str { color: #86efac; }
+    .c-fn { color: #c084fc; }
+    .c-kw { color: #f472b6; }
+    .c-num { color: #fb923c; }
+
+    /* endpoint list */
+    .ep-list { display: flex; flex-direction: column; gap: 8px; }
+    .ep-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .ep-method {
+      font-family: monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .get { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .post { background: rgba(34,197,94,0.15); color: var(--green); }
+    .ep-path { color: var(--accent2); font-family: monospace; font-size: 12px; }
+    .ep-desc { color: var(--text-muted); font-size: 11px; margin-left: auto; }
+
+    /* flow arrow */
+    .flow { display: flex; flex-direction: column; gap: 0; }
+    .flow-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .flow-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 7px 14px;
+      flex: 1;
+      font-size: 12px;
+    }
+    .flow-box.highlight {
+      border-color: rgba(0,212,170,0.35);
+      background: rgba(0,212,170,0.06);
+      color: var(--accent2);
+    }
+    .flow-arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 16px;
+      padding: 2px 0;
+      margin-left: 14px;
+    }
+
+    /* ── Scheduler Timeline ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-item {
+      display: grid;
+      grid-template-columns: 90px 2px 1fr;
+      gap: 0 16px;
+      min-height: 60px;
+    }
+    .tl-time {
+      text-align: right;
+      padding-top: 4px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--accent2);
+      font-weight: 700;
+    }
+    .tl-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tl-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 6px var(--accent2);
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .tl-line-seg {
+      flex: 1;
+      width: 2px;
+      background: var(--border);
+    }
+    .tl-item:last-child .tl-line-seg { display: none; }
+    .tl-content {
+      padding-bottom: 20px;
+    }
+    .tl-content h5 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .tl-content p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── File Tree ── */
+    .file-tree {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 2.1;
+    }
+    .ft-dir { color: #7dd3fc; font-weight: 600; }
+    .ft-exist { color: var(--text-muted); }
+    .ft-new { color: var(--accent2); font-weight: 600; }
+    .ft-mod { color: var(--yellow); }
+    .ft-badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .fb-new { background: rgba(0,212,170,0.15); color: var(--accent2); }
+    .fb-mod { background: rgba(234,179,8,0.12); color: var(--yellow); }
+
+    /* ── Data Source Table ── */
+    .ds-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .ds-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .ds-card .ds-icon { font-size: 22px; margin-bottom: 8px; }
+    .ds-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .ds-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .ds-card .ds-url {
+      display: inline-block;
+      margin-top: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--accent2);
+      background: rgba(0,212,170,0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* ── Summary table ── */
+    .sum-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sum-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .sum-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(46,50,72,0.5);
+      vertical-align: top;
+    }
+    .sum-table tr:last-child td { border-bottom: none; }
+    .s-priority {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 20px;
+    }
+    .p-must { background: rgba(239,68,68,0.12); color: var(--red); }
+    .p-should { background: rgba(234,179,8,0.12); color: var(--yellow); }
+    .s-file { font-family: monospace; font-size: 12px; color: var(--accent2); }
+    .s-dep { font-size: 11px; color: var(--text-muted); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 32px 20px; }
+      .container { padding: 24px 16px 60px; }
+      .task-body { grid-template-columns: 1fr; }
+      .ds-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="phase-label"><span class="dot"></span> Phase 2 Design Report</div>
+  <h1>
+    <span class="phase">Phase 2</span>
+    <span class="title"> — 데이터 수집 자동화</span>
+  </h1>
+  <p class="subtitle">
+    RSS 뉴스 자동 수집 · 분석 스케줄러 · Fear&amp;Greed Index API · OpenClaw 웹훅 수신<br>
+    Phase 1의 수동 POST 구조를 <strong>완전 자동 파이프라인</strong>으로 전환합니다.
+  </p>
+  <div class="header-chips">
+    <div class="hchip">작성일 <strong>2026-05-28</strong></div>
+    <div class="hchip">현재 상태 <strong style="color:var(--green)">Phase 1 완료</strong></div>
+    <div class="hchip">다음 단계 <strong style="color:var(--accent2)">Phase 2 설계</strong></div>
+    <div class="hchip">예상 작업량 <strong>4개 태스크</strong></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── Phase Journey ── -->
+  <section>
+    <div class="section-label">전체 로드맵</div>
+    <div class="journey">
+      <div class="journey-item j-done">
+        <div class="j-circle">1</div>
+        <div class="j-name">Phase 1</div>
+        <div class="j-desc">FastAPI · Bybit · Mock · Docker · start.sh</div>
+      </div>
+      <div style="flex:0;width:40px;height:2px;background:var(--green);margin-top:20px;flex-shrink:0"></div>
+      <div class="journey-item j-active">
+        <div class="j-circle">2</div>
+        <div class="j-name">Phase 2</div>
+        <div class="j-desc">RSS 수집 · 스케줄러 · Fear&amp;Greed · 웹훅</div>
+      </div>
+      <div style="flex:0;width:40px;height:2px;background:var(--border);margin-top:20px;flex-shrink:0"></div>
+      <div class="journey-item j-pending">
+        <div class="j-circle">3</div>
+        <div class="j-name">Phase 3</div>
+        <div class="j-desc">알림 · 백테스팅 · Testnet 실거래</div>
+      </div>
+      <div style="flex:0;width:40px;height:2px;background:var(--border);margin-top:20px;flex-shrink:0"></div>
+      <div class="journey-item j-pending">
+        <div class="j-circle">4</div>
+        <div class="j-name">Phase 4</div>
+        <div class="j-desc">자동화 고도화 · 리스크 엔진 · 대시보드</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Before / After Architecture ── -->
+  <section>
+    <div class="section-label">아키텍처 변화</div>
+    <h2>Phase 1 vs Phase 2</h2>
+    <p class="sub">수동 호출 → 자동 파이프라인 전환</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">Before — Phase 1</div>
+        <div class="arch">
+          <div class="arch-row">
+            <div class="anode existing"><div class="aicon">🦀</div><div class="aname">OpenClaw</div><div class="asub">수동 뉴스 정리</div><div class="abadge ab-exist">수동</div></div>
+            <div class="aarrow">→</div>
+            <div class="anode existing"><div class="aicon">⚡</div><div class="aname">POST /analyze</div><div class="asub">직접 호출</div><div class="abadge ab-exist">수동</div></div>
+          </div>
+          <div class="arch-or">↓ 분석 결과 반환만</div>
+          <div class="arch-row">
+            <div class="anode existing"><div class="aicon">🧠</div><div class="aname">FinBERT</div><div class="asub">+기술적 지표</div></div>
+            <div class="aarrow">→</div>
+            <div class="anode existing"><div class="aicon">📊</div><div class="aname">점수 계산</div><div class="asub">→ SQLite 저장</div></div>
+          </div>
+          <div style="margin-top:14px;padding:10px 14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;font-size:12px;color:#f87171">
+            ❌ 뉴스 수집 자동화 없음<br>
+            ❌ Fear&amp;Greed 수동 입력<br>
+            ❌ 정기 실행 없음
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px">After — Phase 2</div>
+        <div class="arch">
+          <div class="arch-row">
+            <div class="anode new"><div class="aicon">📰</div><div class="aname">RSS 수집기</div><div class="asub">CoinDesk · CT · Binance</div><div class="abadge ab-new">자동</div></div>
+            <div class="aarrow">+</div>
+            <div class="anode new"><div class="aicon">😱</div><div class="aname">Fear&amp;Greed API</div><div class="asub">alternative.me</div><div class="abadge ab-new">자동</div></div>
+          </div>
+          <div class="arch-or">↓</div>
+          <div class="arch-row">
+            <div class="anode new"><div class="aicon">⏰</div><div class="aname">스케줄러</div><div class="asub">X분마다 자동 실행</div><div class="abadge ab-new">신규</div></div>
+          </div>
+          <div class="arch-or">↓</div>
+          <div class="arch-row">
+            <div class="anode existing"><div class="aicon">⚡</div><div class="aname">POST /analyze</div><div class="asub">자동 트리거</div></div>
+            <div class="aarrow">+</div>
+            <div class="anode new"><div class="aicon">🦀</div><div class="aname">POST /webhook</div><div class="asub">OpenClaw 수신</div><div class="abadge ab-new">신규</div></div>
+          </div>
+          <div style="margin-top:14px;padding:10px 14px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;font-size:12px;color:var(--accent2)">
+            ✅ 뉴스 완전 자동 수집<br>
+            ✅ Fear&amp;Greed 실시간 반영<br>
+            ✅ 스케줄러로 무인 운영
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Data Sources ── -->
+  <section>
+    <div class="section-label">데이터 소스</div>
+    <h2>수집 대상</h2>
+    <p class="sub">RSS 피드 5개 + API 2개 — 모두 무료, 인증 불필요</p>
+    <div class="ds-grid">
+      <div class="ds-card">
+        <div class="ds-icon">🪙</div>
+        <h4>CoinDesk RSS</h4>
+        <p>암호화폐 대표 미디어. BTC·ETF·규제 뉴스 중심.</p>
+        <div class="ds-url">feeds.feedburner.com/CoinDesk</div>
+      </div>
+      <div class="ds-card">
+        <div class="ds-icon">📡</div>
+        <h4>CoinTelegraph RSS</h4>
+        <p>시장 분석·온체인 데이터·거시 경제 연결 뉴스.</p>
+        <div class="ds-url">cointelegraph.com/rss</div>
+      </div>
+      <div class="ds-card">
+        <div class="ds-icon">🔶</div>
+        <h4>Binance News RSS</h4>
+        <p>거래소 공시·신규 상장·시스템 공지 등 시장 영향도 높음.</p>
+        <div class="ds-url">binance.com/en/news/rss</div>
+      </div>
+      <div class="ds-card">
+        <div class="ds-icon">😱</div>
+        <h4>Fear &amp; Greed Index</h4>
+        <p>alternative.me의 Crypto Fear &amp; Greed Index. 0(극도공포)~100(극도탐욕).</p>
+        <div class="ds-url">api.alternative.me/fng/</div>
+      </div>
+      <div class="ds-card">
+        <div class="ds-icon">🏛️</div>
+        <h4>CryptoCompare News</h4>
+        <p>카테고리·태그 필터링 가능. BTC·ETH 특화 뉴스 필터.</p>
+        <div class="ds-url">min-api.cryptocompare.com</div>
+      </div>
+      <div class="ds-card">
+        <div class="ds-icon">🦀</div>
+        <h4>OpenClaw Webhook</h4>
+        <p>OpenClaw 에이전트가 분석한 뉴스를 직접 POST로 수신. 구조화된 데이터.</p>
+        <div class="ds-url">POST /api/v1/webhook/news</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Task 1: RSS Collector ── -->
+  <section>
+    <div class="section-label">Phase 2 태스크</div>
+    <h2>구현 계획</h2>
+    <p class="sub">4개 태스크 · 예상 총 작업 시간 2~3일</p>
+
+    <div class="tasks">
+
+      <!-- Task 1 -->
+      <div class="task-card">
+        <div class="task-header">
+          <div class="task-num num-1">T1</div>
+          <div class="task-title">
+            <h3>RSS 뉴스 수집기</h3>
+            <p>services/news_collector.py — feedparser 기반 멀티소스 수집 + 중복 제거</p>
+          </div>
+          <div class="task-badges">
+            <span class="tbadge tb-high">필수</span>
+            <span class="tbadge tb-new">신규 파일</span>
+            <span class="tbadge tb-day">~0.5일</span>
+          </div>
+        </div>
+        <div class="task-body">
+          <div class="task-section">
+            <h4>구현 항목</h4>
+            <div class="checklist">
+              <div class="check-item"><span class="check-icon">📌</span><span>RSS 소스 목록 설정 (env/config)</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>feedparser로 병렬 피드 수집</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>URL 기반 중복 제거 (SQLite seen_urls 테이블)</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>최신 N시간 내 기사만 필터</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>NewsItem 스키마로 정규화 반환</span></div>
+            </div>
+          </div>
+          <div class="task-section">
+            <h4>코드 스케치</h4>
+            <div class="code">
+<span class="c-comment"># services/news_collector.py</span>
+<span class="c-kw">async def</span> <span class="c-fn">collect_news</span>(hours: <span class="c-fn">int</span> = <span class="c-num">2</span>) -> <span class="c-fn">list</span>[NewsItem]:
+    feeds = [
+        <span class="c-str">"https://feeds.feedburner.com/CoinDesk"</span>,
+        <span class="c-str">"https://cointelegraph.com/rss"</span>,
+        <span class="c-str">"https://cryptonews.com/news/feed/"</span>,
+    ]
+    results = <span class="c-kw">await</span> asyncio.gather(
+        *[_fetch_feed(url) <span class="c-kw">for</span> url <span class="c-kw">in</span> feeds]
+    )
+    items = _deduplicate(_flatten(results))
+    <span class="c-kw">return</span> _filter_recent(items, hours=hours)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task 2 -->
+      <div class="task-card">
+        <div class="task-header">
+          <div class="task-num num-2">T2</div>
+          <div class="task-title">
+            <h3>Fear &amp; Greed Index 서비스</h3>
+            <p>services/fear_greed.py — alternative.me API 실시간 조회 + 캐싱</p>
+          </div>
+          <div class="task-badges">
+            <span class="tbadge tb-high">필수</span>
+            <span class="tbadge tb-new">신규 파일</span>
+            <span class="tbadge tb-day">~0.5일</span>
+          </div>
+        </div>
+        <div class="task-body">
+          <div class="task-section">
+            <h4>구현 항목</h4>
+            <div class="checklist">
+              <div class="check-item"><span class="check-icon">📌</span><span>alternative.me API GET 요청</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>5분 캐싱 (불필요한 반복 호출 방지)</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>Mock 모드 지원 (랜덤값 반환)</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>/analyze 자동 주입 (요청에서 fear_greed_index 생략 시)</span></div>
+              <div class="check-item"><span class="check-icon">📌</span><span>GET /api/v1/fear-greed 엔드포인트 추가</span></div>
+            </div>
+          </div>
+          <div class="task-section">
+            <h4>API 응답 예시</h4>
+            <div class="code">
+<span class="c-comment"># GET https://api.alternative.me/fng/</span>
+{
+  <span class="c-key">"data"</span>: [{
+    <span class="c-key">"value"</span>: <span class="c-str">"23"</span>,
+    <span class="c-key">"value_classification"</span>: <span class="c-str">"Extreme Fear"</span>,
+    <span class="c-key">"timestamp"</span>: <span class="c-str">"1748390400"</span>
+  }]
+}
+
+<span class="c-comment"># 반환값 → scoring.py에 자동 주입</span>
+fear_greed = <span class="c-kw">await</span> <span class="c-fn">get_fear_greed</span>()  <span class="c-comment"># 23.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task 3 -->
+      <div class="task-card">
+        <div class="task-header">
+          <div class="task-num num-3">T3</div>
+          <div class="task-title">
+            <h3>자동 분석 스케줄러</h3>
+            <p>services/scheduler.py — APScheduler로 주기적 뉴스 수집 → /analyze 자동 실행</p>
+          </div>
+          <div class="task-badges">
+            <span class="tbadge tb-high">필수</span>
+            <span class="tbadge tb-new">신규 파일</span>
+            <span class="tbadge tb-day">~1일</span>
+          </div>
+        </div>
+        <div class="task-body">
+          <div class="task-section">
+            <h4>실행 흐름</h4>
+            <div class="flow">
+              <div class="flow-item"><div class="flow-box highlight">⏰ APScheduler 트리거 (매 30분)</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box">📰 RSS 피드 병렬 수집</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box">😱 Fear&amp;Greed Index 조회</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box">🧠 FinBERT 감성 분석</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box">📊 점수 계산 (뉴스 + 지표 + FG)</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box highlight">💡 score ≥ 10: OpenClaw 알림 발송</div></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-item"><div class="flow-box highlight">🤖 score ≥ 20: Bybit 자동 주문</div></div>
+            </div>
+          </div>
+          <div class="task-section">
+            <h4>스케줄 타임라인</h4>
+            <div class="timeline">
+              <div class="tl-item">
+                <div class="tl-time">매 30분</div>
+                <div class="tl-line"><div class="tl-dot"></div><div class="tl-line-seg"></div></div>
+                <div class="tl-content">
+                  <h5>정기 분석</h5>
+                  <p>RSS 수집 → 감성 분석 → 점수 계산. 기본 주기. SCHEDULE_INTERVAL_MIN 으로 조정.</p>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-time">매 5분</div>
+                <div class="tl-line"><div class="tl-dot"></div><div class="tl-line-seg"></div></div>
+                <div class="tl-content">
+                  <h5>Fear &amp; Greed 캐시 갱신</h5>
+                  <p>외부 API 부하 최소화를 위해 캐시 TTL 5분으로 분리 운영.</p>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-time">매 1시간</div>
+                <div class="tl-line"><div class="tl-dot"></div><div class="tl-line-seg"></div></div>
+                <div class="tl-content">
+                  <h5>seen_urls 정리</h5>
+                  <p>24시간 이상 된 중복 제거 기록 삭제. DB 용량 관리.</p>
+                </div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-time">즉시</div>
+                <div class="tl-line"><div class="tl-dot"></div><div class="tl-line-seg"></div></div>
+                <div class="tl-content">
+                  <h5>서버 시작 시 1회 실행</h5>
+                  <p>컨테이너 재시작 후 첫 번째 스케줄 전까지 공백 없이 즉시 분석.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task 4 -->
+      <div class="task-card">
+        <div class="task-header">
+          <div class="task-num num-4">T4</div>
+          <div class="task-title">
+            <h3>OpenClaw Webhook 수신 엔드포인트</h3>
+            <p>api/routes.py 확장 — OpenClaw → trading-api 뉴스 Push 수신</p>
+          </div>
+          <div class="task-badges">
+            <span class="tbadge tb-med">권장</span>
+            <span class="tbadge tb-day">~0.5일</span>
+          </div>
+        </div>
+        <div class="task-body">
+          <div class="task-section">
+            <h4>신규 엔드포인트</h4>
+            <div class="ep-list">
+              <div class="ep-item">
+                <span class="ep-method post">POST</span>
+                <span class="ep-path">/api/v1/webhook/news</span>
+                <span class="ep-desc">OpenClaw → trading-api 뉴스 push</span>
+              </div>
+              <div class="ep-item">
+                <span class="ep-method get">GET</span>
+                <span class="ep-path">/api/v1/fear-greed</span>
+                <span class="ep-desc">현재 지수 + 캐시 TTL 반환</span>
+              </div>
+              <div class="ep-item">
+                <span class="ep-method get">GET</span>
+                <span class="ep-path">/api/v1/scheduler/status</span>
+                <span class="ep-desc">스케줄러 상태 + 다음 실행 시각</span>
+              </div>
+              <div class="ep-item">
+                <span class="ep-method post">POST</span>
+                <span class="ep-path">/api/v1/scheduler/trigger</span>
+                <span class="ep-desc">수동 즉시 실행 (테스트용)</span>
+              </div>
+            </div>
+          </div>
+          <div class="task-section">
+            <h4>Webhook 요청 형식</h4>
+            <div class="code">
+<span class="c-comment"># OpenClaw → POST /api/v1/webhook/news</span>
+{
+  <span class="c-key">"token"</span>: <span class="c-str">"my_super_secret_token_123"</span>,
+  <span class="c-key">"symbol"</span>: <span class="c-str">"BTCUSDT"</span>,
+  <span class="c-key">"news"</span>: [
+    {
+      <span class="c-key">"title"</span>: <span class="c-str">"Bitcoin ETF sees record inflows"</span>,
+      <span class="c-key">"content"</span>: <span class="c-str">"..."</span>,
+      <span class="c-key">"source"</span>: <span class="c-str">"coindesk"</span>
+    }
+  ]
+}
+
+<span class="c-comment"># 응답: 분석 결과 즉시 반환</span>
+{ <span class="c-key">"score"</span>: <span class="c-num">14.2</span>, <span class="c-key">"action"</span>: <span class="c-str">"notify"</span>, ... }
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── File Structure Changes ── -->
+  <section>
+    <div class="section-label">파일 구조 변화</div>
+    <h2>추가·수정되는 파일</h2>
+    <div class="file-tree">
+      <span class="ft-dir">app/</span><br>
+      &nbsp;&nbsp;├── <span class="ft-exist">main.py</span> <span class="ft-badge fb-mod">수정</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← 스케줄러 lifespan 등록</span><br>
+      &nbsp;&nbsp;├── <span class="ft-exist">api/routes.py</span> <span class="ft-badge fb-mod">수정</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← webhook, fear-greed, scheduler 엔드포인트 추가</span><br>
+      &nbsp;&nbsp;├── <span class="ft-exist">models/schemas.py</span> <span class="ft-badge fb-mod">수정</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← WebhookRequest, FearGreedResponse 스키마 추가</span><br>
+      &nbsp;&nbsp;├── <span class="ft-exist">database/db.py</span> <span class="ft-badge fb-mod">수정</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← SeenUrl 테이블 추가</span><br>
+      &nbsp;&nbsp;├── services/<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-new">news_collector.py</span> <span class="ft-badge fb-new">신규</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← RSS 수집 + 중복 제거</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-new">fear_greed.py</span> <span class="ft-badge fb-new">신규</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← alternative.me API + 캐시</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-new">scheduler.py</span> <span class="ft-badge fb-new">신규</span><span style="color:var(--text-muted);font-size:11px;margin-left:8px">← APScheduler 기반 자동 분석</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-exist">sentiment.py</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-exist">market.py</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="ft-exist">scoring.py</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="ft-exist">notifier.py</span><br>
+      &nbsp;&nbsp;└── requirements.txt / requirements-mock.txt <span class="ft-badge fb-mod">수정</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);font-size:11px">← apscheduler, feedparser 추가 (feedparser는 이미 requirements.txt에 있음)</span>
+    </div>
+  </section>
+
+  <!-- ── Dependencies ── -->
+  <section>
+    <div class="section-label">의존성 변화</div>
+    <h2>추가되는 패키지</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">requirements-mock.txt 추가</div>
+        <div class="code">
+<span class="c-comment"># 스케줄러</span>
+<span class="c-key">apscheduler</span>>=<span class="c-num">3.10</span>
+
+<span class="c-comment"># RSS 파싱 (이미 requirements.txt에 있음)</span>
+<span class="c-key">feedparser</span>>=<span class="c-num">6.0</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">새 환경변수</div>
+        <div class="code">
+<span class="c-comment"># 스케줄 주기 (분)</span>
+<span class="c-key">SCHEDULE_INTERVAL_MIN</span>=<span class="c-num">30</span>
+
+<span class="c-comment"># 뉴스 수집 범위 (시간)</span>
+<span class="c-key">NEWS_LOOKBACK_HOURS</span>=<span class="c-num">2</span>
+
+<span class="c-comment"># 분석할 심볼 목록</span>
+<span class="c-key">WATCH_SYMBOLS</span>=<span class="c-str">BTCUSDT,ETHUSDT</span>
+
+<span class="c-comment"># Webhook 인증 토큰</span>
+<span class="c-key">WEBHOOK_TOKEN</span>=<span class="c-str">your_token</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Task Summary Table ── -->
+  <section>
+    <div class="section-label">작업 요약</div>
+    <h2>Phase 2 전체 태스크 목록</h2>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <table class="sum-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>태스크</th>
+            <th>생성 파일</th>
+            <th>추가 패키지</th>
+            <th>우선순위</th>
+            <th>예상</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--accent2);font-weight:700">T1</td>
+            <td>
+              <strong>RSS 뉴스 수집기</strong><br>
+              <span class="s-dep">feedparser 멀티소스 + 중복 제거</span>
+            </td>
+            <td><span class="s-file">services/news_collector.py</span></td>
+            <td><span class="s-file">feedparser</span></td>
+            <td><span class="s-priority p-must">필수</span></td>
+            <td style="color:var(--text-muted);font-size:12px">0.5일</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent2);font-weight:700">T2</td>
+            <td>
+              <strong>Fear &amp; Greed Index</strong><br>
+              <span class="s-dep">alternative.me API + 5분 캐시</span>
+            </td>
+            <td><span class="s-file">services/fear_greed.py</span></td>
+            <td>—</td>
+            <td><span class="s-priority p-must">필수</span></td>
+            <td style="color:var(--text-muted);font-size:12px">0.5일</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent2);font-weight:700">T3</td>
+            <td>
+              <strong>자동 분석 스케줄러</strong><br>
+              <span class="s-dep">APScheduler + 즉시 실행 + lifespan 등록</span>
+            </td>
+            <td><span class="s-file">services/scheduler.py</span></td>
+            <td><span class="s-file">apscheduler</span></td>
+            <td><span class="s-priority p-must">필수</span></td>
+            <td style="color:var(--text-muted);font-size:12px">1일</td>
+          </tr>
+          <tr>
+            <td style="color:var(--accent2);font-weight:700">T4</td>
+            <td>
+              <strong>OpenClaw Webhook 수신</strong><br>
+              <span class="s-dep">POST /webhook/news + 토큰 인증</span>
+            </td>
+            <td><span class="s-file">api/routes.py 확장</span></td>
+            <td>—</td>
+            <td><span class="s-priority p-should">권장</span></td>
+            <td style="color:var(--text-muted);font-size:12px">0.5일</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Prerequisite from Phase 1 ── -->
+  <section>
+    <div class="section-label">Phase 1 완료 확인</div>
+    <h2>Phase 2 시작 전 체크리스트</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:var(--surface);border:1px solid rgba(34,197,94,0.25);border-radius:12px;padding:20px">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:14px;text-transform:uppercase;letter-spacing:1px">✅ 완료된 항목</div>
+        <div class="checklist">
+          <div class="check-item"><span class="check-icon">✅</span><span>FastAPI 서버 정상 실행 (포트 8000)</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>POST /analyze 엔드포인트 동작</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>FinBERT 감성 분석 파이프라인</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>Bybit Testnet API 키 설정 완료</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>OpenClaw 연결 확인 (포트 18789)</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>SQLite 로그 저장 동작</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>Mock 모드 전체 파이프라인 검증</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>start.sh 실행 스크립트</span></div>
+          <div class="check-item"><span class="check-icon">✅</span><span>Docker Compose 헬스체크</span></div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid rgba(234,179,8,0.25);border-radius:12px;padding:20px">
+        <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:14px;text-transform:uppercase;letter-spacing:1px">⚠️ Phase 2 진입 전 권장</div>
+        <div class="checklist">
+          <div class="check-item"><span class="check-icon">⬜</span><span>Testnet 실거래 주문 1회 이상 확인</span></div>
+          <div class="check-item"><span class="check-icon">⬜</span><span>MOCK_MODE=false 전환 후 market API 동작 확인</span></div>
+          <div class="check-item"><span class="check-icon">⬜</span><span>FinBERT 모델 Docker 이미지 빌드 테스트</span></div>
+          <div class="check-item"><span class="check-icon">⬜</span><span>OpenClaw 토큰 .env에 정확히 입력</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <span>AI Crypto Trading System · Phase 2 설계 보고서 · 2026-05-28</span>
+  <span>다음 단계: T1 RSS 수집기 → T2 Fear&amp;Greed → T3 스케줄러 → T4 Webhook 순으로 구현</span>
+</footer>
+
+</body>
+</html>
