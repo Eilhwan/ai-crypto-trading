@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Crypto Trading System — 개발 진행 보고서</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222535;
+      --border: #2e3248;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --accent3: #ff6b6b;
+      --accent4: #ffd166;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12142a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 40px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, rgba(108,99,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-tag {
+      display: inline-block;
+      background: rgba(108,99,255,0.15);
+      border: 1px solid rgba(108,99,255,0.4);
+      color: #a78bfa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    header h1 span { color: var(--accent); }
+    header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 600px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .meta-item .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .meta-item .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Section ── */
+    section { margin-bottom: 56px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* ── Phase Status ── */
+    .phases {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+    .phase-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .phase-card.done { border-color: rgba(34,197,94,0.3); }
+    .phase-card.done::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--green);
+    }
+    .phase-card.in-progress { border-color: rgba(108,99,255,0.4); }
+    .phase-card.in-progress::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    .phase-card.pending { border-color: var(--border); }
+    .phase-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .phase-card.done .phase-num { color: var(--green); }
+    .phase-card.in-progress .phase-num { color: var(--accent); }
+    .phase-card.pending .phase-num { color: var(--text-muted); }
+    .phase-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .phase-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .phase-badge {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 20px;
+    }
+    .badge-done { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-partial { background: rgba(108,99,255,0.15); color: var(--accent); }
+    .badge-pending { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+
+    /* ── Progress Bar ── */
+    .progress-wrap { margin-bottom: 32px; }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .progress-label span:last-child { color: var(--accent); font-weight: 700; }
+    .progress-bar {
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 3px;
+      transition: width 1s ease;
+    }
+
+    /* ── Cards Grid ── */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cards.two { grid-template-columns: repeat(2, 1fr); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+    /* ── File Tree ── */
+    .file-tree {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .tree-dir { color: #7dd3fc; font-weight: 600; }
+    .tree-file { color: var(--text-muted); }
+    .tree-file.highlight { color: var(--text); }
+    .tree-badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 7px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .tb-new { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tb-mock { background: rgba(108,99,255,0.15); color: var(--accent); }
+
+    /* ── API Table ── */
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .api-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .api-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .api-table tr:last-child td { border-bottom: none; }
+    .method {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .get { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .post { background: rgba(34,197,94,0.15); color: var(--green); }
+    .path { font-family: monospace; color: var(--accent2); font-size: 13px; }
+    .api-desc { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
+    /* ── Score Table ── */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .score-table th {
+      text-align: left;
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .score-table td { padding: 10px 16px; border-bottom: 1px solid rgba(46,50,72,0.5); }
+    .score-table tr:last-child td { border-bottom: none; }
+    .score-plus { color: var(--green); font-weight: 700; font-family: monospace; }
+    .score-minus { color: var(--red); font-weight: 700; font-family: monospace; }
+
+    /* ── Test Result ── */
+    .test-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .test-header {
+      background: var(--surface2);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .test-status {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .status-pass { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .test-body { padding: 16px 20px; }
+    .test-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 6px 16px;
+      font-size: 13px;
+    }
+    .test-label { color: var(--text-muted); }
+    .test-val { font-family: monospace; }
+    .test-val.green { color: var(--green); font-weight: 700; }
+    .test-val.yellow { color: var(--yellow); font-weight: 700; }
+    .test-val.red { color: var(--red); font-weight: 700; }
+
+    /* ── Todo ── */
+    .todo-group { margin-bottom: 32px; }
+    .todo-group h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .todo-list { display: flex; flex-direction: column; gap: 8px; }
+    .todo-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .todo-item.high { border-left: 3px solid var(--red); }
+    .todo-item.med { border-left: 3px solid var(--yellow); }
+    .todo-item.low { border-left: 3px solid var(--text-muted); }
+    .todo-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+    .todo-title { font-weight: 600; margin-bottom: 2px; }
+    .todo-sub { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+    .priority-chip {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .p-high { background: rgba(239,68,68,0.15); color: var(--red); }
+    .p-med { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .p-low { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+
+    /* ── Architecture Diagram ── */
+    .arch-diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .arch-node {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      text-align: center;
+      min-width: 110px;
+    }
+    .arch-node.active {
+      border-color: rgba(108,99,255,0.5);
+      background: rgba(108,99,255,0.08);
+    }
+    .arch-node.external {
+      border-color: rgba(0,212,170,0.4);
+      background: rgba(0,212,170,0.06);
+    }
+    .arch-node .node-icon { font-size: 20px; margin-bottom: 4px; }
+    .arch-node .node-name { font-size: 12px; font-weight: 600; }
+    .arch-node .node-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .arch-arrow {
+      color: var(--text-muted);
+      font-size: 18px;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .arch-arrow.down {
+      writing-mode: vertical-rl;
+      padding: 8px 0;
+    }
+
+    /* ── Stack Chips ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+    }
+    .chip.done { border-color: rgba(34,197,94,0.3); color: var(--green); background: rgba(34,197,94,0.08); }
+    .chip.pending { border-color: rgba(100,116,139,0.3); }
+
+    /* ── Risk Block ── */
+    .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .risk-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .risk-card h5 { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .risk-value { font-size: 22px; font-weight: 700; font-family: monospace; }
+    .risk-card p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 40px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      .phases { grid-template-columns: repeat(2, 1fr); }
+      .cards { grid-template-columns: 1fr; }
+      .cards.two { grid-template-columns: 1fr; }
+      .risk-grid { grid-template-columns: repeat(2, 1fr); }
+      header { padding: 32px 20px; }
+      .container { padding: 24px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Development Report · v0.1</div>
+  <h1>AI <span>Crypto</span> Trading System</h1>
+  <p>뉴스 감성 분석 + 기술적 지표 기반 자동/반자동 암호화폐 트레이딩 시스템 개발 현황 보고서</p>
+  <div class="header-meta">
+    <div class="meta-item">
+      <span class="dot"></span>
+      서버 실행 중 — localhost:8000
+    </div>
+    <div class="meta-item">
+      <span class="dot yellow"></span>
+      Mock 모드 활성화
+    </div>
+    <div class="meta-item">
+      작성일 2026-05-28
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── Overall Progress ── -->
+  <section>
+    <div class="section-title">전체 진행률</div>
+    <h2>Phase 1 완료 · Phase 2 준비 중</h2>
+    <h3>4개 Phase 중 1개 완료, 전체 약 25% 진행</h3>
+
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Phase 1 — Docker + FastAPI + Bybit + Mock</span><span>100%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Phase 2 — RSS 수집 + 스케줄러 + Fear&amp;Greed API</span><span>0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Phase 3 — 백테스팅 + 알림 시스템</span><span>0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Phase 4 — 자동 거래 + 리스크 관리 고도화</span><span>0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="phases">
+      <div class="phase-card done">
+        <div class="phase-num">Phase 1</div>
+        <h4>기반 인프라</h4>
+        <p>Docker · FastAPI · Bybit API · Mock 시스템 · SQLite 로그</p>
+        <span class="phase-badge badge-done">완료</span>
+      </div>
+      <div class="phase-card pending">
+        <div class="phase-num">Phase 2</div>
+        <h4>데이터 수집</h4>
+        <p>RSS 뉴스 수집 · 자동 분석 스케줄러 · Fear &amp; Greed API</p>
+        <span class="phase-badge badge-pending">대기</span>
+      </div>
+      <div class="phase-card pending">
+        <div class="phase-num">Phase 3</div>
+        <h4>검증 &amp; 알림</h4>
+        <p>백테스팅 · OpenClaw 웹훅 · Telegram 알림</p>
+        <span class="phase-badge badge-pending">대기</span>
+      </div>
+      <div class="phase-card pending">
+        <div class="phase-num">Phase 4</div>
+        <h4>자동화 고도화</h4>
+        <p>완전 자동 거래 · 리스크 엔진 · RL 전략</p>
+        <span class="phase-badge badge-pending">대기</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Architecture ── -->
+  <section>
+    <div class="section-title">시스템 아키텍처</div>
+    <h2>데이터 흐름</h2>
+    <h3>외부 데이터 → 분석 → 점수 계산 → 매매 결정 → Bybit</h3>
+
+    <div class="arch-diagram">
+      <div class="arch-node external">
+        <div class="node-icon">📰</div>
+        <div class="node-name">RSS / API</div>
+        <div class="node-sub">뉴스 · CPI · Fear&amp;Greed</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node external">
+        <div class="node-icon">🦀</div>
+        <div class="node-name">OpenClaw</div>
+        <div class="node-sub">데이터 수집 · 정제</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node active">
+        <div class="node-icon">⚡</div>
+        <div class="node-name">FastAPI</div>
+        <div class="node-sub">POST /analyze</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node active">
+        <div class="node-icon">🧠</div>
+        <div class="node-name">FinBERT</div>
+        <div class="node-sub">감성 분석</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node active">
+        <div class="node-icon">📊</div>
+        <div class="node-name">점수 엔진</div>
+        <div class="node-sub">RSI · MACD · Vol</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node active">
+        <div class="node-icon">🤖</div>
+        <div class="node-name">Bybit API</div>
+        <div class="node-sub">주문 실행</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Built Components ── -->
+  <section>
+    <div class="section-title">완성된 컴포넌트</div>
+    <h2>Phase 1 구현 내역</h2>
+    <h3>총 15개 파일 · 약 700 LOC</h3>
+
+    <div class="cards" style="margin-bottom:24px">
+      <div class="card">
+        <div class="card-icon" style="background:rgba(108,99,255,0.12)">⚡</div>
+        <h4>FastAPI 서버</h4>
+        <p>비동기 FastAPI 서버. lifespan 이벤트로 DB 초기화, uvicorn + watchfiles 핫 리로드 지원.</p>
+        <div class="chips">
+          <span class="chip done">main.py</span>
+          <span class="chip done">api/routes.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(0,212,170,0.10)">🧠</div>
+        <h4>감성 분석 서비스</h4>
+        <p>ProsusAI/finbert 모델. Mock 모드에서 키워드 기반 감성 판단. 모델 import는 lazy 처리.</p>
+        <div class="chips">
+          <span class="chip done">services/sentiment.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(59,130,246,0.12)">📈</div>
+        <h4>시장 지표 분석</h4>
+        <p>Bybit kline 데이터로 RSI · MACD · Bollinger Band · 거래량 변화율 계산 (pandas-ta).</p>
+        <div class="chips">
+          <span class="chip done">services/market.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(234,179,8,0.10)">🎯</div>
+        <h4>점수 계산 엔진</h4>
+        <p>뉴스·RSI·MACD·거래량·공포탐욕 점수를 합산해 ignore / notify / auto_trade 결정.</p>
+        <div class="chips">
+          <span class="chip done">services/scoring.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(239,68,68,0.10)">💱</div>
+        <h4>Bybit 트레이더</h4>
+        <p>Market 주문 실행. 포지션 한도 리스크 체크 내장. Testnet 전환 가능.</p>
+        <div class="chips">
+          <span class="chip done">traders/bybit_trader.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(108,99,255,0.12)">🗃️</div>
+        <h4>SQLite 로그 DB</h4>
+        <p>분석 이력(analysis_logs) · 거래 이력(trade_logs) 자동 저장. SQLAlchemy 비동기.</p>
+        <div class="chips">
+          <span class="chip done">database/db.py</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards two">
+      <div class="card">
+        <div class="card-icon" style="background:rgba(108,99,255,0.12)">🎭</div>
+        <h4>Mock 시스템</h4>
+        <p>실제 API 키·ML 모델 없이 전체 파이프라인 테스트. <code style="color:var(--accent2)">MOCK_SCENARIO</code> 환경변수로 bullish / bearish / default 시나리오 전환.</p>
+        <div class="chips">
+          <span class="chip done">utils/mock.py</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:rgba(0,212,170,0.10)">🐳</div>
+        <h4>Docker 환경</h4>
+        <p>Mock용 경량 이미지(<code style="color:var(--accent2)">requirements-mock.txt</code>)와 전체 이미지 분리. Build ARG로 선택 가능.</p>
+        <div class="chips">
+          <span class="chip done">Dockerfile</span>
+          <span class="chip done">docker-compose.yml</span>
+          <span class="chip done">docker-compose.mock.yml</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── File Tree ── -->
+  <section>
+    <div class="section-title">프로젝트 구조</div>
+    <div class="file-tree">
+      <span class="tree-dir">ai_trading/</span><br>
+      &nbsp;&nbsp;├── <span class="tree-file highlight">docker-compose.yml</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;├── <span class="tree-file highlight">docker-compose.mock.yml</span> <span class="tree-badge tb-mock">mock</span><br>
+      &nbsp;&nbsp;├── <span class="tree-file">.env</span> &nbsp;<span style="color:var(--text-muted);font-size:11px">← BYBIT_API_KEY, MOCK_SCENARIO 등</span><br>
+      &nbsp;&nbsp;├── <span class="tree-file">.env.example</span><br>
+      &nbsp;&nbsp;├── <span class="tree-file">data/trading.db</span> &nbsp;<span style="color:var(--text-muted);font-size:11px">← SQLite 자동 생성</span><br>
+      &nbsp;&nbsp;└── <span class="tree-dir">app/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-file highlight">main.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-file highlight">Dockerfile</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-file">requirements.txt</span> &nbsp;<span style="color:var(--text-muted);font-size:11px">full (transformers + pybit)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-file highlight">requirements-mock.txt</span> <span class="tree-badge tb-mock">mock</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">api/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">routes.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">models/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">schemas.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">services/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="tree-file highlight">sentiment.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="tree-file highlight">market.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">scoring.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">traders/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">bybit_trader.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">database/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">db.py</span> <span class="tree-badge tb-new">new</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">utils/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="tree-file highlight">mock.py</span> <span class="tree-badge tb-mock">mock</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="tree-dir">indicators/</span> &nbsp;<span style="color:var(--text-muted);font-size:11px">← Phase 2에서 확장 예정</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="tree-dir">backtest/</span> &nbsp;&nbsp;<span style="color:var(--text-muted);font-size:11px">← Phase 3에서 구현 예정</span>
+    </div>
+  </section>
+
+  <!-- ── API Endpoints ── -->
+  <section>
+    <div class="section-title">API 엔드포인트</div>
+    <h2>구현된 REST API</h2>
+    <h3>Base URL: http://localhost:8000/api/v1 · 문서: /docs</h3>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="api-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td>
+              <span class="path">/analyze</span>
+              <div class="api-desc">핵심 엔드포인트. 뉴스 배열 + 심볼 + fear_greed_index 입력 → 점수·행동 반환. auto_trade 시 자동 주문 실행</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">JSON body</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td>
+              <span class="path">/market/{symbol}</span>
+              <div class="api-desc">Bybit 실시간 시장 데이터 + RSI / MACD / BB / 거래량 지표</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">Path param</td>
+          </tr>
+          <tr>
+            <td><span class="method post">POST</span></td>
+            <td>
+              <span class="path">/trade/manual</span>
+              <div class="api-desc">사람이 직접 매수/매도 주문 실행. 리스크 체크 적용</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">Query params</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td>
+              <span class="path">/logs/analysis</span>
+              <div class="api-desc">분석 이력 조회 (최신순, limit 파라미터)</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">?limit=20</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td>
+              <span class="path">/logs/trades</span>
+              <div class="api-desc">거래 이력 조회</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">?limit=20</td>
+          </tr>
+          <tr>
+            <td><span class="method get">GET</span></td>
+            <td>
+              <span class="path">/health</span>
+              <div class="api-desc">서버 상태 확인</div>
+            </td>
+            <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Score System ── -->
+  <section>
+    <div class="section-title">점수 시스템</div>
+    <h2>매매 결정 로직</h2>
+    <h3>5개 지표 합산 → 임계값 비교 → ignore / notify / auto_trade</h3>
+
+    <div class="cards two" style="margin-bottom:24px">
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="score-table">
+          <thead><tr><th>지표</th><th>조건</th><th>점수</th></tr></thead>
+          <tbody>
+            <tr><td>뉴스 감성</td><td>매우 긍정 (FinBERT)</td><td class="score-plus">+7 max</td></tr>
+            <tr><td>RSI</td><td>과매도 &lt; 30</td><td class="score-plus">+3</td></tr>
+            <tr><td>RSI</td><td>과매수 &gt; 70</td><td class="score-minus">-3</td></tr>
+            <tr><td>MACD</td><td>골든크로스</td><td class="score-plus">+5</td></tr>
+            <tr><td>MACD</td><td>데스크로스</td><td class="score-minus">-5</td></tr>
+            <tr><td>거래량</td><td>&gt; 150% 평균</td><td class="score-plus">+4</td></tr>
+            <tr><td>거래량</td><td>50~150% 평균</td><td class="score-plus">+2</td></tr>
+            <tr><td>거래량</td><td>&lt; -50% 평균</td><td class="score-minus">-2</td></tr>
+            <tr><td>공포/탐욕</td><td>극도의 공포 &lt; 25</td><td class="score-plus">+2</td></tr>
+            <tr><td>공포/탐욕</td><td>극도의 탐욕 &gt; 75</td><td class="score-minus">-2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:16px;font-size:14px">임계값 및 행동</h4>
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">절댓값 기준</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:rgba(100,116,139,0.1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px">0 ~ 9</span>
+              <span style="font-size:12px;color:var(--text-muted)">무시 (IGNORE)</span>
+            </div>
+            <div style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.3);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px">10 ~ 19</span>
+              <span style="font-size:12px;color:var(--yellow)">사용자 승인 요청 (NOTIFY)</span>
+            </div>
+            <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px">20 이상</span>
+              <span style="font-size:12px;color:var(--green)">자동 거래 실행 (AUTO_TRADE)</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+          양수 = 매수 신호, 음수 = 매도 신호<br>
+          <code style="color:var(--accent2)">SCORE_NOTIFY_MIN</code>, <code style="color:var(--accent2)">SCORE_AUTO_TRADE_MIN</code>으로 .env에서 조정 가능
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Test Results ── -->
+  <section>
+    <div class="section-title">테스트 결과</div>
+    <h2>Mock 시나리오 검증</h2>
+    <h3>MOCK_MODE=true, MOCK_SCENARIO=bullish 기준</h3>
+
+    <div class="test-block">
+      <div class="test-header">
+        <div class="test-status status-pass"></div>
+        시나리오 1 — 긍정/부정 뉴스 상쇄
+      </div>
+      <div class="test-body">
+        <div class="test-grid">
+          <span class="test-label">입력</span><span class="test-val">ETF approved (긍정) + exchange hack (부정)</span>
+          <span class="test-label">score</span><span class="test-val">0.0</span>
+          <span class="test-label">action</span><span class="test-val red">IGNORE</span>
+          <span class="test-label">결과</span><span class="test-val">감성 상쇄 정상 동작 ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-block">
+      <div class="test-header">
+        <div class="test-status status-pass"></div>
+        시나리오 2 — 긍정 뉴스 + default market (MACD 데스크로스)
+      </div>
+      <div class="test-body">
+        <div class="test-grid">
+          <span class="test-label">뉴스 점수</span><span class="test-val">+6.59</span>
+          <span class="test-label">RSI 점수</span><span class="test-val green">+3.0 (RSI=25.1, 과매도)</span>
+          <span class="test-label">MACD 점수</span><span class="test-val red">-5.0 (데스크로스)</span>
+          <span class="test-label">거래량 점수</span><span class="test-val green">+2.0 (78.7% 상승)</span>
+          <span class="test-label">total score</span><span class="test-val">6.59</span>
+          <span class="test-label">action</span><span class="test-val red">IGNORE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-block">
+      <div class="test-header">
+        <div class="test-status status-pass"></div>
+        시나리오 3 — 긍정 뉴스 + bullish market (MACD 골든크로스)
+      </div>
+      <div class="test-body">
+        <div class="test-grid">
+          <span class="test-label">뉴스 점수</span><span class="test-val">+6.59</span>
+          <span class="test-label">RSI 점수</span><span class="test-val green">+3.0 (RSI=27.3, 과매도)</span>
+          <span class="test-label">MACD 점수</span><span class="test-val green">+5.0 (골든크로스)</span>
+          <span class="test-label">거래량 점수</span><span class="test-val green">+4.0 (162% 상승)</span>
+          <span class="test-label">total score</span><span class="test-val yellow">18.59</span>
+          <span class="test-label">action</span><span class="test-val yellow">NOTIFY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-block">
+      <div class="test-header">
+        <div class="test-status status-pass"></div>
+        시나리오 4 — bullish + fear_greed_index=20 (극도의 공포)
+      </div>
+      <div class="test-body">
+        <div class="test-grid">
+          <span class="test-label">뉴스 점수</span><span class="test-val">+6.59</span>
+          <span class="test-label">RSI 점수</span><span class="test-val green">+3.0</span>
+          <span class="test-label">MACD 점수</span><span class="test-val green">+5.0</span>
+          <span class="test-label">거래량 점수</span><span class="test-val green">+4.0</span>
+          <span class="test-label">공포/탐욕 점수</span><span class="test-val green">+2.0</span>
+          <span class="test-label">total score</span><span class="test-val green">20.59</span>
+          <span class="test-label">action</span><span class="test-val green">AUTO_TRADE</span>
+          <span class="test-label">주문 결과</span><span class="test-val green">[MOCK] Buy 0.001 BTCUSDT 완료 ✓</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Risk Management ── -->
+  <section>
+    <div class="section-title">리스크 관리</div>
+    <h2>현재 설정된 안전장치</h2>
+
+    <div class="risk-grid">
+      <div class="risk-card">
+        <h5>일일 최대 손실</h5>
+        <div class="risk-value" style="color:var(--red)">-3%</div>
+        <p>자본 대비 일일 손실 한도</p>
+      </div>
+      <div class="risk-card">
+        <h5>최대 포지션</h5>
+        <div class="risk-value" style="color:var(--yellow)">10%</div>
+        <p>총 자산 대비 단일 포지션 한도</p>
+      </div>
+      <div class="risk-card">
+        <h5>연속 손실 제한</h5>
+        <div class="risk-value" style="color:var(--yellow)">5회</div>
+        <p>연속 손실 시 자동 중지</p>
+      </div>
+      <div class="risk-card">
+        <h5>초기 주문 수량</h5>
+        <div class="risk-value" style="color:var(--accent2)">0.001</div>
+        <p>BTC 기준 최소 단위 고정</p>
+      </div>
+      <div class="risk-card">
+        <h5>레버리지</h5>
+        <div class="risk-value" style="color:var(--green)">금지</div>
+        <p>초기 단계 레버리지 사용 불가</p>
+      </div>
+      <div class="risk-card">
+        <h5>환경</h5>
+        <div class="risk-value" style="color:var(--accent)">Testnet</div>
+        <p>실제 자금 사용 전 검증 단계</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Environment Config ── -->
+  <section>
+    <div class="section-title">환경 설정</div>
+    <h2>주요 환경변수</h2>
+
+    <div class="card" style="font-family:monospace;font-size:13px;line-height:2">
+      <div style="color:var(--text-muted);margin-bottom:8px"># .env 파일</div>
+      <div><span style="color:#7dd3fc">MOCK_MODE</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">true</span><span style="color:var(--text-muted);font-size:11px;margin-left:12px">← false로 변경 시 실거래 전환</span></div>
+      <div><span style="color:#7dd3fc">MOCK_SCENARIO</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">bullish</span><span style="color:var(--text-muted);font-size:11px;margin-left:12px">← default | bullish | bearish</span></div>
+      <div><span style="color:#7dd3fc">BYBIT_API_KEY</span><span style="color:var(--text-muted)">=</span><span style="color:#f59e0b">••••••••••••••••</span><span style="color:var(--text-muted);font-size:11px;margin-left:12px">← Testnet 키 설정 완료</span></div>
+      <div><span style="color:#7dd3fc">BYBIT_TESTNET</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">true</span></div>
+      <div><span style="color:#7dd3fc">SCORE_NOTIFY_MIN</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">10</span></div>
+      <div><span style="color:#7dd3fc">SCORE_AUTO_TRADE_MIN</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">20</span></div>
+      <div><span style="color:#7dd3fc">MAX_POSITION_PCT</span><span style="color:var(--text-muted)">=</span><span style="color:var(--accent2)">10.0</span></div>
+    </div>
+  </section>
+
+  <!-- ── Remaining Tasks ── -->
+  <section>
+    <div class="section-title">남은 작업</div>
+    <h2>Phase 2 ~ 4 할 일 목록</h2>
+    <h3>우선순위 높음부터 낮음 순 정렬</h3>
+
+    <div class="todo-group">
+      <h4>🔥 Phase 2 — 데이터 수집 자동화 <span class="priority-chip p-high">최우선</span></h4>
+      <div class="todo-list">
+        <div class="todo-item high">
+          <span class="todo-icon">📰</span>
+          <div>
+            <div class="todo-title">RSS 뉴스 자동 수집기 <span class="priority-chip p-high">High</span></div>
+            <div class="todo-sub">CoinDesk · CoinTelegraph · Binance News RSS 파싱. <code>feedparser</code> 이미 requirements에 포함. <code>services/news_collector.py</code> 구현 필요. 중복 URL 필터링 포함.</div>
+          </div>
+        </div>
+        <div class="todo-item high">
+          <span class="todo-icon">⏰</span>
+          <div>
+            <div class="todo-title">분석 스케줄러 <span class="priority-chip p-high">High</span></div>
+            <div class="todo-sub">APScheduler 또는 asyncio 루프로 X분마다 RSS 수집 → /analyze 자동 실행. 현재는 OpenClaw에서 수동 POST 필요.</div>
+          </div>
+        </div>
+        <div class="todo-item high">
+          <span class="todo-icon">😱</span>
+          <div>
+            <div class="todo-title">Fear &amp; Greed Index 실시간 연동 <span class="priority-chip p-high">High</span></div>
+            <div class="todo-sub">alternative.me API로 실시간 값 조회. 현재 <code>/analyze</code> 요청 시 수동 입력. 자동 조회 서비스 구현 필요.</div>
+          </div>
+        </div>
+        <div class="todo-item med">
+          <span class="todo-icon">🦀</span>
+          <div>
+            <div class="todo-title">OpenClaw 웹훅 수신 엔드포인트 <span class="priority-chip p-med">Medium</span></div>
+            <div class="todo-sub">OpenClaw(현재 18789 포트 실행 중)에서 뉴스 수집 후 POST로 전달받는 <code>/webhook/news</code> 엔드포인트 구현.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="todo-group">
+      <h4>📊 Phase 3 — 검증 &amp; 알림 <span class="priority-chip p-med">중요</span></h4>
+      <div class="todo-list">
+        <div class="todo-item med">
+          <span class="todo-icon">📬</span>
+          <div>
+            <div class="todo-title">알림 시스템 <span class="priority-chip p-med">Medium</span></div>
+            <div class="todo-sub">score ≥ 10 (NOTIFY)일 때 사람에게 알림. OpenClaw 메시지 우선. Telegram Bot API 또는 Discord Webhook 추가 후보. <code>services/notifier.py</code> 구현.</div>
+          </div>
+        </div>
+        <div class="todo-item med">
+          <span class="todo-icon">🔬</span>
+          <div>
+            <div class="todo-title">백테스팅 시스템 <span class="priority-chip p-med">Medium</span></div>
+            <div class="todo-sub"><code>backtest/</code> 디렉토리 구현. Bybit 히스토리컬 데이터 다운로드 → 과거 뉴스 데이터로 전략 시뮬레이션. Backtrader 또는 자체 구현. 수익률 · MDD · 샤프 비율 계산.</div>
+          </div>
+        </div>
+        <div class="todo-item med">
+          <span class="todo-icon">🧪</span>
+          <div>
+            <div class="todo-title">Testnet 실거래 검증 <span class="priority-chip p-med">Medium</span></div>
+            <div class="todo-sub">현재 Testnet API 키 설정 완료. <code>MOCK_MODE=false</code>로 전환 후 실제 Testnet 주문 테스트. 주문 체결 · 잔고 조회 · 에러 처리 검증.</div>
+          </div>
+        </div>
+        <div class="todo-item low">
+          <span class="todo-icon">📉</span>
+          <div>
+            <div class="todo-title">일일 손실 추적기 <span class="priority-chip p-low">Low</span></div>
+            <div class="todo-sub">현재 MAX_DAILY_LOSS_PCT=3% 설정은 있으나 실제 추적 로직 미구현. trade_logs를 집계해 일일 손실이 한도 초과 시 자동 거래 중지 기능 필요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="todo-group">
+      <h4>🚀 Phase 4 — 자동화 고도화 <span class="priority-chip p-low">장기</span></h4>
+      <div class="todo-list">
+        <div class="todo-item low">
+          <span class="todo-icon">🎛️</span>
+          <div>
+            <div class="todo-title">동적 수량 계산 <span class="priority-chip p-low">Low</span></div>
+            <div class="todo-sub">현재 주문 수량 0.001 BTC 하드코딩. 점수 크기 · 잔고 · 변동성(ATR) 기반으로 동적 수량 계산 로직 필요.</div>
+          </div>
+        </div>
+        <div class="todo-item low">
+          <span class="todo-icon">🔄</span>
+          <div>
+            <div class="todo-title">연속 손실 카운터 <span class="priority-chip p-low">Low</span></div>
+            <div class="todo-sub">MAX_CONSECUTIVE_LOSSES=5 설정만 있고 실제 카운팅 미구현. trade_logs 기반으로 연속 손실 감지 → 자동 일시 중지.</div>
+          </div>
+        </div>
+        <div class="todo-item low">
+          <span class="todo-icon">📊</span>
+          <div>
+            <div class="todo-title">모니터링 대시보드 <span class="priority-chip p-low">Low</span></div>
+            <div class="todo-sub">Grafana + SQLite 또는 간단한 HTML 대시보드. 실시간 점수 · 거래 이력 · 지표 시각화. docker-compose.yml에 서비스 추가 예정.</div>
+          </div>
+        </div>
+        <div class="todo-item low">
+          <span class="todo-icon">🤖</span>
+          <div>
+            <div class="todo-title">FinBERT → DistilRoBERTa 전환 테스트 <span class="priority-chip p-low">Low</span></div>
+            <div class="todo-sub">mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis 모델과 성능 비교. 속도가 더 빠름. A/B 테스트 구현.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Tech Stack ── -->
+  <section>
+    <div class="section-title">기술 스택</div>
+    <h2>구현된 기술 / 예정 기술</h2>
+
+    <div class="cards">
+      <div class="card">
+        <h4 style="margin-bottom:12px">Backend</h4>
+        <div class="chips">
+          <span class="chip done">Python 3.12</span>
+          <span class="chip done">FastAPI</span>
+          <span class="chip done">Uvicorn</span>
+          <span class="chip done">SQLAlchemy</span>
+          <span class="chip done">aiosqlite</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:12px">AI / 데이터</h4>
+        <div class="chips">
+          <span class="chip done">FinBERT</span>
+          <span class="chip done">pandas-ta</span>
+          <span class="chip done">pandas / numpy</span>
+          <span class="chip pending">DistilRoBERTa</span>
+          <span class="chip pending">Backtrader</span>
+        </div>
+      </div>
+      <div class="card">
+        <h4 style="margin-bottom:12px">인프라 / 연동</h4>
+        <div class="chips">
+          <span class="chip done">Docker</span>
+          <span class="chip done">Bybit API</span>
+          <span class="chip done">OpenClaw</span>
+          <span class="chip pending">Telegram Bot</span>
+          <span class="chip pending">Grafana</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <span>AI Crypto Trading System · Draft v0.1 · 2026-05-28</span>
+  <span>Phase 1 완료 · 다음 단계: RSS 수집 자동화 → Testnet 실거래 검증</span>
+</footer>
+
+</body>
+</html>

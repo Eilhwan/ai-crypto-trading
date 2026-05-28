@@ -1,0 +1,26 @@
+services:
+  trading-api:
+    build: ./app
+    container_name: trading-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
