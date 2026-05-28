@@ -7,6 +7,7 @@ import os
 
 from database.db import init_db
 from api.routes import router
+from api.dashboard import dashboard_router
 from services.scheduler import setup_scheduler, run_analysis_cycle
 
 # Configure loguru
@@ -37,11 +38,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI Crypto Trading System",
     description="뉴스 감성 분석 + 기술적 지표 기반 암호화폐 트레이딩 API",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
 app.include_router(router, prefix="/api/v1")
+app.include_router(dashboard_router)
 
 
 @app.get("/")

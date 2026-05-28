@@ -112,6 +112,16 @@ class BacktestConfig(BaseModel):
     exit_score: float = Field(default=-5.0)
 
 
+class RiskStatus(BaseModel):
+    consecutive_losses: int
+    max_consecutive_losses: int
+    daily_loss_usdt: float
+    max_daily_loss_pct: float
+    trading_halted: bool
+    halted_reason: str
+    last_reset_date: str
+
+
 class BacktestTrade(BaseModel):
     index: int
     side: str

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Crypto Trading System — 개발 보고서 v0.3</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #273549;
+    --border: #334155; --text: #e2e8f0; --muted: #94a3b8;
+    --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+    --blue: #38bdf8; --purple: #a78bfa; --orange: #fb923c;
+    --accent: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+
+  /* Layout */
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 60px 0 48px; border-bottom: 1px solid var(--border); margin-bottom: 48px; }
+  .hero-badge { display: inline-block; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; letter-spacing: 1px; margin-bottom: 18px; }
+  .hero h1 { font-size: 38px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  .hero h1 span { color: var(--blue); }
+  .hero p { color: var(--muted); font-size: 17px; max-width: 600px; margin: 0 auto 24px; }
+  .hero-meta { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; }
+  .meta-item { text-align: center; }
+  .meta-item .val { font-size: 24px; font-weight: 700; color: var(--blue); }
+  .meta-item .lbl { font-size: 12px; color: var(--muted); }
+
+  /* Section headings */
+  h2 { font-size: 22px; font-weight: 700; margin: 48px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  h2 .icon { font-size: 20px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 24px 0 12px; color: var(--blue); }
+
+  /* Phase timeline */
+  .phases { display: grid; gap: 16px; }
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; display: grid; grid-template-columns: auto 1fr auto; gap: 0 18px; align-items: start; }
+  .phase.done  { border-left: 4px solid var(--green); }
+  .phase.active{ border-left: 4px solid var(--blue); background: #1e2f45; }
+  .phase-num  { font-size: 28px; font-weight: 800; color: var(--muted); line-height: 1; padding-top: 2px; }
+  .phase.done  .phase-num { color: var(--green); }
+  .phase.active .phase-num { color: var(--blue); }
+  .phase-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .phase-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .chip-done   { background: #14532d33; color: var(--green); border-color: #14532d; }
+  .chip-active { background: #1e3a5f33; color: var(--blue); border-color: #1e3a5f; }
+  .phase-status { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; white-space: nowrap; }
+  .status-done   { background: #14532d; color: var(--green); }
+  .status-active { background: #1e3a5f; color: var(--blue); }
+
+  /* Architecture */
+  .arch { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; font-family: monospace; font-size: 13px; line-height: 1.9; overflow-x: auto; }
+  .arch .hl   { color: var(--blue); font-weight: 700; }
+  .arch .hl2  { color: var(--green); font-weight: 700; }
+  .arch .hl3  { color: var(--yellow); font-weight: 700; }
+  .arch .hl4  { color: var(--purple); font-weight: 700; }
+  .arch .muted{ color: var(--muted); }
+
+  /* Tables */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 10px 12px; background: var(--surface); border-bottom: 2px solid var(--border); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .7px; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #ffffff05; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .tag-green  { background: #14532d44; color: var(--green); }
+  .tag-blue   { background: #1e3a5f44; color: var(--blue); }
+  .tag-yellow { background: #42200644; color: var(--yellow); }
+  .tag-red    { background: #450a0a44; color: var(--red); }
+  .tag-purple { background: #3b0764aa; color: var(--purple); }
+
+  /* Test results */
+  .test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .test-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .test-card .tc-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .test-card .tc-result { font-size: 12px; color: var(--muted); font-family: monospace; }
+  .test-card .tc-status { float: right; font-size: 12px; font-weight: 700; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+
+  /* Endpoint grid */
+  .endpoint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+  .ep { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .ep-method { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; margin-top: 1px; }
+  .ep-method.get  { background: #14532d44; color: var(--green); }
+  .ep-method.post { background: #1e3a5f44; color: var(--blue); }
+  .ep-path { font-size: 13px; font-family: monospace; font-weight: 600; }
+  .ep-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ep-new  { font-size: 10px; background: var(--accent); color: #fff; padding: 1px 5px; border-radius: 3px; margin-left: 6px; font-weight: 700; vertical-align: middle; }
+
+  /* Score table */
+  .score-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+
+  /* Stack chips */
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .s-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; }
+  .s-chip b { color: var(--blue); }
+
+  /* Risk table */
+  .risk-tbl { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+
+  /* Footer */
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); }
+  footer a { color: var(--blue); text-decoration: none; }
+
+  @media print { body { background: #fff; color: #000; } .arch { background: #f8f9fa; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">DEV REPORT v0.3 — 2026-05-28</div>
+    <h1>AI <span>Crypto</span> Trading System</h1>
+    <p>뉴스 감성 분석 + 기술적 지표 + 리스크 관리를 결합한 암호화폐 반자동/자동 트레이딩 시스템</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="val">4</div><div class="lbl">완료 Phase</div></div>
+      <div class="meta-item"><div class="val">13</div><div class="lbl">API 엔드포인트</div></div>
+      <div class="meta-item"><div class="val">0</div><div class="lbl">실거래 손실</div></div>
+      <div class="meta-item"><div class="val">100%</div><div class="lbl">Mock 테스트 통과</div></div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <h2><span class="icon">🏗</span> 시스템 아키텍처</h2>
+  <div class="arch">
+<span class="hl">[뉴스 / RSS / CPI / Fear&amp;Greed]</span>
+            ↓
+   <span class="hl2">자동 RSS 수집</span> (APScheduler, 30분 간격)
+   또는 <span class="hl2">POST /api/v1/webhook/news</span>
+            ↓
+    <span class="hl">POST /api/v1/analyze</span>
+            ↓
+    <span class="hl3">FinBERT 감성 분석</span>  [ProsusAI/finbert]
+            ↓
+    <span class="hl3">기술적 지표</span> — RSI · MACD · 볼린저밴드 · 거래량
+    <span class="hl3">Fear &amp; Greed</span> — Alternative.me API
+            ↓
+       <span class="hl">점수 계산 엔진</span>
+            ↓
+  ┌──────────────────────────────────────────┐
+  │  |score| &lt;  10  →  <span class="muted">IGNORE    (무시)</span>        │
+  │  |score| 10-19  →  <span class="hl3">NOTIFY    (알림 발송)</span>    │
+  │  |score| ≥  20  →  <span class="hl2">AUTO_TRADE (자동 주문)</span>   │
+  └──────────────────────────────────────────┘
+            ↓
+  <span class="hl4">RiskManager</span> — 연속손실 · 일일손실 한도 체크  ← <span class="hl4">NEW (Phase 4)</span>
+            ↓
+  <span class="hl4">Dynamic Qty</span> — 점수 강도 × 자산 비율 계산       ← <span class="hl4">NEW (Phase 4)</span>
+            ↓
+        <span class="hl2">Bybit API</span>  (Spot Market Order)
+            ↓
+       <span class="hl">SQLite 로그 저장</span>  (분석 · 거래 · 백테스트)
+            ↓
+  <span class="hl3">OpenClaw · Telegram · Discord</span>  동시 알림
+            ↓
+  <span class="hl4">모니터링 대시보드</span>  GET /dashboard             ← <span class="hl4">NEW (Phase 4)</span>
+  </div>
+
+  <!-- Phase Timeline -->
+  <h2><span class="icon">📋</span> 개발 Phase 현황</h2>
+  <div class="phases">
+
+    <div class="phase done">
+      <div class="phase-num">1</div>
+      <div>
+        <div class="phase-title">FastAPI 기반 핵심 파이프라인</div>
+        <div style="color:var(--muted);font-size:13px">Docker 환경 구축, Bybit API 연동, FinBERT 감성 분석 엔진, 점수 계산 시스템, Mock 모드</div>
+        <div class="phase-items">
+          <span class="chip chip-done">FastAPI + Uvicorn</span>
+          <span class="chip chip-done">Bybit Spot API</span>
+          <span class="chip chip-done">FinBERT 감성 분석</span>
+          <span class="chip chip-done">점수 엔진</span>
+          <span class="chip chip-done">Mock 시스템</span>
+          <span class="chip chip-done">Docker Compose</span>
+          <span class="chip chip-done">SQLite 로그</span>
+        </div>
+      </div>
+      <div class="phase-status status-done">완료</div>
+    </div>
+
+    <div class="phase done">
+      <div class="phase-num">2</div>
+      <div>
+        <div class="phase-title">자동화 데이터 파이프라인</div>
+        <div style="color:var(--muted);font-size:13px">RSS 뉴스 자동 수집, APScheduler 분석 사이클, Fear&amp;Greed API, OpenClaw 웹훅</div>
+        <div class="phase-items">
+          <span class="chip chip-done">feedparser RSS</span>
+          <span class="chip chip-done">APScheduler</span>
+          <span class="chip chip-done">Fear &amp; Greed API</span>
+          <span class="chip chip-done">Webhook 수신</span>
+          <span class="chip chip-done">URL 중복 제거</span>
+        </div>
+      </div>
+      <div class="phase-status status-done">완료</div>
+    </div>
+
+    <div class="phase done">
+      <div class="phase-num">3</div>
+      <div>
+        <div class="phase-title">백테스팅 엔진 + 멀티채널 알림</div>
+        <div style="color:var(--muted);font-size:13px">과거 캔들 데이터 기반 전략 검증 (수익률·MDD·샤프), Telegram/Discord/OpenClaw 동시 알림</div>
+        <div class="phase-items">
+          <span class="chip chip-done">Backtest Engine</span>
+          <span class="chip chip-done">Telegram Bot</span>
+          <span class="chip chip-done">Discord Webhook</span>
+          <span class="chip chip-done">OpenClaw 알림</span>
+          <span class="chip chip-done">샤프 비율</span>
+          <span class="chip chip-done">MDD 계산</span>
+        </div>
+      </div>
+      <div class="phase-status status-done">완료</div>
+    </div>
+
+    <div class="phase active">
+      <div class="phase-num">4</div>
+      <div>
+        <div class="phase-title">리스크 관리 고도화 + 모니터링 대시보드</div>
+        <div style="color:var(--muted);font-size:13px">동적 포지션 사이징, 연속손실 실시간 추적, 일일손실 한도 자동 거래 차단, 실시간 웹 대시보드</div>
+        <div class="phase-items">
+          <span class="chip chip-active">동적 수량 계산</span>
+          <span class="chip chip-active">연속손실 추적</span>
+          <span class="chip chip-active">일일손실 한도</span>
+          <span class="chip chip-active">거래 자동 차단</span>
+          <span class="chip chip-active">모니터링 대시보드</span>
+          <span class="chip chip-active">리스크 상태 API</span>
+        </div>
+      </div>
+      <div class="phase-status status-active">진행 중</div>
+    </div>
+
+  </div>
+
+  <!-- Phase 4 Details -->
+  <h2><span class="icon">⚡</span> Phase 4 — 구현 상세</h2>
+
+  <h3>1. 동적 포지션 사이징 (Dynamic Position Sizing)</h3>
+  <p style="color:var(--muted);margin-bottom:14px">기존: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">qty = 0.001</code> 하드코딩 → 신호 강도·자산 규모에 맞는 수량 자동 계산</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>공식 / 설명</th><th>예시 (BTCUSDT, equity 1,000 USDT)</th></tr></thead>
+      <tbody>
+        <tr><td>기본 투자금</td><td>equity × MAX_POSITION_PCT%</td><td>1,000 × 10% = <b>100 USDT</b></td></tr>
+        <tr><td>점수 배수</td><td>min(|score| / 20, 1.5)</td><td>score=20 → 1.0×, score=30 → 1.5×</td></tr>
+        <tr><td>실제 투자금</td><td>기본 투자금 × 점수 배수</td><td>score=20 → 100 USDT, score=30 → 150 USDT</td></tr>
+        <tr><td>주문 수량</td><td>투자금 / 현재 가격</td><td>100 / 63,500 ≈ <b>0.001575 BTC</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>2. 연속손실 실시간 추적</h3>
+  <div class="tbl-wrap">
+    <table class="risk-tbl">
+      <thead><tr><th>이벤트</th><th>동작</th><th>거래 차단 조건</th></tr></thead>
+      <tbody>
+        <tr><td>주문 성공</td><td>consecutive_losses 카운터 초기화</td><td>-</td></tr>
+        <tr><td>주문 실패</td><td>consecutive_losses += 1</td><td>≥ MAX_CONSECUTIVE_LOSSES (기본 5회)</td></tr>
+        <tr><td>손실 PnL</td><td>daily_loss_usdt += |pnl|</td><td>일일 손실 ≥ MAX_DAILY_LOSS_PCT % (기본 3%)</td></tr>
+        <tr><td>매일 자정</td><td>daily_loss_usdt 자동 초기화</td><td>-</td></tr>
+        <tr><td>수동 리셋</td><td>POST /api/v1/risk/reset</td><td>trading_halted → false</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>3. 모니터링 대시보드 (/dashboard)</h3>
+  <p style="color:var(--muted);margin-bottom:14px">브라우저에서 <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">http://localhost:8000/dashboard</code> 접속. 10초마다 자동 갱신.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="color:var(--blue);font-weight:700;margin-bottom:6px">상태 카드 6종</div>
+      <div style="color:var(--muted);font-size:13px">Fear&amp;Greed · 스케줄러 · 연속손실 · 일일손실 · 총분석 · 총거래</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="color:var(--green);font-weight:700;margin-bottom:6px">실시간 차트</div>
+      <div style="color:var(--muted);font-size:13px">최근 20개 분석 점수 바 차트 (Chart.js)</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="color:var(--yellow);font-weight:700;margin-bottom:6px">거래 중단 배너</div>
+      <div style="color:var(--muted);font-size:13px">연속손실 한도 초과 시 빨간 경고 + 리셋 버튼</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="color:var(--purple);font-weight:700;margin-bottom:6px">이력 테이블</div>
+      <div style="color:var(--muted);font-size:13px">분석 로그 · 거래 로그 · 백테스트 이력</div>
+    </div>
+  </div>
+
+  <!-- API Endpoints -->
+  <h2><span class="icon">🔌</span> API 엔드포인트 전체 목록</h2>
+  <div class="endpoint-grid">
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/analyze</div><div class="ep-desc">뉴스 분석 + 점수 계산 + 자동 거래</div></div></div>
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/webhook/news</div><div class="ep-desc">외부 뉴스 수신 (토큰 인증)</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/fear-greed</div><div class="ep-desc">Fear &amp; Greed 지수</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/scheduler/status</div><div class="ep-desc">스케줄러 상태 + 다음 실행</div></div></div>
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/scheduler/trigger</div><div class="ep-desc">수동 분석 사이클 실행</div></div></div>
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/backtest/run</div><div class="ep-desc">백테스팅 실행</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/backtest/results</div><div class="ep-desc">백테스트 이력 조회</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/market/{symbol}</div><div class="ep-desc">시장 데이터 + 기술적 지표</div></div></div>
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/trade/manual</div><div class="ep-desc">수동 매수/매도</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/logs/analysis</div><div class="ep-desc">분석 이력 조회</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/logs/trades</div><div class="ep-desc">거래 이력 조회</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/risk/status</div><div class="ep-desc">리스크 상태 조회 <span class="ep-new">NEW</span></div></div></div>
+    <div class="ep"><span class="ep-method post">POST</span><div><div class="ep-path">/api/v1/risk/reset</div><div class="ep-desc">리스크 상태 초기화 <span class="ep-new">NEW</span></div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/api/v1/health</div><div class="ep-desc">서버 상태 + 거래 차단 여부</div></div></div>
+    <div class="ep"><span class="ep-method get">GET</span><div><div class="ep-path">/dashboard</div><div class="ep-desc">모니터링 대시보드 <span class="ep-new">NEW</span></div></div></div>
+  </div>
+
+  <!-- Score System -->
+  <h2><span class="icon">📊</span> 점수 시스템</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>지표</th><th>조건</th><th>점수</th><th>최대 기여</th></tr></thead>
+      <tbody>
+        <tr><td>뉴스 감성</td><td>FinBERT confidence × 7</td><td><span class="score-pill" style="background:#22c55e22;color:#22c55e">최대 +7</span></td><td>35%</td></tr>
+        <tr><td>뉴스 감성</td><td>부정 신호</td><td><span class="score-pill" style="background:#ef444422;color:#ef4444">최소 -7</span></td><td>35%</td></tr>
+        <tr><td>RSI</td><td>&lt; 30 (과매도)</td><td><span class="score-pill" style="background:#22c55e22;color:#22c55e">+3</span></td><td>15%</td></tr>
+        <tr><td>RSI</td><td>&gt; 70 (과매수)</td><td><span class="score-pill" style="background:#ef444422;color:#ef4444">-3</span></td><td>15%</td></tr>
+        <tr><td>MACD</td><td>골든크로스</td><td><span class="score-pill" style="background:#22c55e22;color:#22c55e">+5</span></td><td>25%</td></tr>
+        <tr><td>MACD</td><td>데스크로스</td><td><span class="score-pill" style="background:#ef444422;color:#ef4444">-5</span></td><td>25%</td></tr>
+        <tr><td>거래량</td><td>평균 +150% 이상</td><td><span class="score-pill" style="background:#22c55e22;color:#22c55e">+4</span></td><td>20%</td></tr>
+        <tr><td>거래량</td><td>평균 +50~150%</td><td><span class="score-pill" style="background:#3b82f622;color:#3b82f6">+2</span></td><td>10%</td></tr>
+        <tr><td>거래량</td><td>평균 -50% 이하</td><td><span class="score-pill" style="background:#ef444422;color:#ef4444">-2</span></td><td>10%</td></tr>
+        <tr><td>Fear &amp; Greed</td><td>&lt; 25 (극도의 공포)</td><td><span class="score-pill" style="background:#22c55e22;color:#22c55e">+2</span></td><td>10%</td></tr>
+        <tr><td>Fear &amp; Greed</td><td>&gt; 75 (극도의 탐욕)</td><td><span class="score-pill" style="background:#ef444422;color:#ef4444">-2</span></td><td>10%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px">
+    <div style="background:#94a3b811;border:1px solid #334155;border-radius:8px;padding:16px;text-align:center">
+      <div style="color:var(--muted);font-size:12px;margin-bottom:6px">IGNORE</div>
+      <div style="font-size:20px;font-weight:800;color:var(--muted)">0 ~ 9</div>
+    </div>
+    <div style="background:#eab30811;border:1px solid #422006;border-radius:8px;padding:16px;text-align:center">
+      <div style="color:var(--yellow);font-size:12px;margin-bottom:6px">NOTIFY</div>
+      <div style="font-size:20px;font-weight:800;color:var(--yellow)">10 ~ 19</div>
+    </div>
+    <div style="background:#22c55e11;border:1px solid #14532d;border-radius:8px;padding:16px;text-align:center">
+      <div style="color:var(--green);font-size:12px;margin-bottom:6px">AUTO TRADE</div>
+      <div style="font-size:20px;font-weight:800;color:var(--green)">20+</div>
+    </div>
+  </div>
+
+  <!-- Test Results -->
+  <h2><span class="icon">✅</span> 테스트 결과 (2026-05-28)</h2>
+  <div class="test-grid">
+    <div class="test-card">
+      <div class="tc-title">Health Check <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">{"status":"ok","trading_halted":false}</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">Fear &amp; Greed <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">{"value":72.0,"classification":"Greed"}</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">Market Data (BTCUSDT) <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">RSI 27.3 | MACD 350.5 | Vol +162%</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">Bullish 뉴스 → notify <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">score: +19.38 → action: notify</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">Bearish 뉴스 → ignore <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">score: +7.62 → action: ignore</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">3개 강한 뉴스 → auto_trade <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">score: +20.59 → action: auto_trade</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">스케줄러 상태 <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">running:true | 30min | BTCUSDT,ETHUSDT</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">스케줄러 수동 트리거 <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">{"message":"Analysis cycle triggered"}</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">백테스팅 30일 <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">+5.97% | MDD 5.03% | Sharpe 14.36</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">수동 거래 <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">[MOCK] Buy 0.001 BTCUSDT — 성공</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">분석 로그 SQLite 저장 <span class="tc-status pass">PASS</span></div>
+      <div class="tc-result">16개 로그 정상 저장 확인</div>
+    </div>
+    <div class="test-card">
+      <div class="tc-title">Mock 키워드 버그 수정 <span class="tc-status pass">FIXED</span></div>
+      <div class="tc-result">"SEC rejects" positive→neutral 수정</div>
+    </div>
+  </div>
+
+  <!-- Tech Stack -->
+  <h2><span class="icon">🛠</span> 기술 스택</h2>
+  <div class="stack">
+    <div class="s-chip"><b>Python 3.12</b> 백엔드</div>
+    <div class="s-chip"><b>FastAPI</b> REST API</div>
+    <div class="s-chip"><b>Uvicorn</b> ASGI 서버</div>
+    <div class="s-chip"><b>SQLAlchemy 2.0</b> ORM</div>
+    <div class="s-chip"><b>SQLite + aiosqlite</b> 저장소</div>
+    <div class="s-chip"><b>FinBERT</b> 금융 감성 분석</div>
+    <div class="s-chip"><b>HuggingFace Transformers</b> ML</div>
+    <div class="s-chip"><b>APScheduler</b> 작업 스케줄러</div>
+    <div class="s-chip"><b>pandas-ta</b> 기술적 지표</div>
+    <div class="s-chip"><b>feedparser</b> RSS 수집</div>
+    <div class="s-chip"><b>pybit</b> Bybit API</div>
+    <div class="s-chip"><b>httpx</b> 비동기 HTTP</div>
+    <div class="s-chip"><b>Docker Compose</b> 인프라</div>
+    <div class="s-chip"><b>Chart.js</b> 대시보드 차트</div>
+    <div class="s-chip"><b>loguru</b> 로깅</div>
+    <div class="s-chip"><b>Pydantic v2</b> 스키마 검증</div>
+  </div>
+
+  <!-- Risk Management -->
+  <h2><span class="icon">🛡</span> 리스크 관리 설정</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>기본값</th><th>설명</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td>MAX_POSITION_PCT</td><td>10%</td><td>단일 포지션 최대 자산 비율</td><td><span class="tag tag-green">1</span></td></tr>
+        <tr><td>MAX_DAILY_LOSS_PCT</td><td>3%</td><td>일일 최대 손실 한도 초과 시 거래 차단</td><td><span class="tag tag-green">1</span></td></tr>
+        <tr><td>MAX_CONSECUTIVE_LOSSES</td><td>5회</td><td>연속 손실 한도 초과 시 거래 차단</td><td><span class="tag tag-green">1</span></td></tr>
+        <tr><td>SCORE_NOTIFY_MIN</td><td>10</td><td>알림 발송 최소 점수</td><td><span class="tag tag-green">1</span></td></tr>
+        <tr><td>SCORE_AUTO_TRADE_MIN</td><td>20</td><td>자동 거래 최소 점수 (높을수록 보수적)</td><td><span class="tag tag-green">1</span></td></tr>
+        <tr><td>Dynamic Qty 점수 배수</td><td>최대 1.5×</td><td>score≥30일 때 기본 포지션의 1.5배까지 확대</td><td><span class="tag tag-blue">4 NEW</span></td></tr>
+        <tr><td>Halt 자동 해제</td><td>수동</td><td>POST /api/v1/risk/reset 으로 수동 해제 필요</td><td><span class="tag tag-blue">4 NEW</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- File Structure -->
+  <h2><span class="icon">📁</span> 프로젝트 구조</h2>
+  <div class="arch" style="font-size:12px">
+ai_trading/
+├── <span class="hl2">start.sh</span>                    통합 시작/중지 스크립트
+├── docker-compose.yml          전체 환경 (FinBERT + Ollama)
+├── docker-compose.mock.yml     Mock 경량 환경
+├── .env.example
+└── app/
+    ├── main.py                 FastAPI 진입점 + 스케줄러 초기화
+    ├── api/
+    │   ├── routes.py           모든 API 엔드포인트
+    │   └── <span class="hl4">dashboard.py</span>        모니터링 대시보드 HTML       ← <span class="hl4">NEW</span>
+    ├── models/
+    │   └── schemas.py          Pydantic 스키마 (<span class="hl4">RiskStatus 추가</span>)
+    ├── services/
+    │   ├── sentiment.py        FinBERT 감성 분석
+    │   ├── market.py           Bybit 시장 데이터 + 지표
+    │   ├── scoring.py          점수 계산 + 행동 결정
+    │   ├── scheduler.py        자동 분석 사이클 (<span class="hl4">동적 수량 적용</span>)
+    │   ├── news_collector.py   RSS 수집 + 중복 제거
+    │   ├── fear_greed.py       Fear &amp; Greed API
+    │   ├── notifier.py         OpenClaw · Telegram · Discord
+    │   └── <span class="hl4">risk_manager.py</span>     연속손실 · 일일손실 추적       ← <span class="hl4">NEW</span>
+    ├── traders/
+    │   └── bybit_trader.py     주문 실행 (<span class="hl4">동적 수량 + 리스크 통합</span>)
+    ├── backtest/
+    │   └── engine.py           백테스팅 엔진
+    ├── database/
+    │   └── db.py               SQLite ORM
+    └── utils/
+        └── mock.py             Mock 데이터 생성기 (<span class="hl4">키워드 버그 수정</span>)
+  </div>
+
+  <!-- Next Steps -->
+  <h2><span class="icon">🚀</span> 다음 단계 (Phase 5 후보)</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>기능</th><th>설명</th><th>우선순위</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Testnet 실거래 검증</b></td>
+          <td>Bybit Testnet API 연결 후 실제 주문 플로우 E2E 테스트</td>
+          <td><span class="tag tag-red">높음</span></td>
+        </tr>
+        <tr>
+          <td><b>PnL 추적 고도화</b></td>
+          <td>진입/청산 가격 기록으로 실현손익 계산 및 리스크 매니저 연동</td>
+          <td><span class="tag tag-red">높음</span></td>
+        </tr>
+        <tr>
+          <td><b>Mean Reversion 전략</b></td>
+          <td>볼린저밴드 수축/이탈 기반 역추세 매매 전략 추가</td>
+          <td><span class="tag tag-yellow">중간</span></td>
+        </tr>
+        <tr>
+          <td><b>Grafana 모니터링</b></td>
+          <td>메트릭 수출 + Grafana 대시보드 연동</td>
+          <td><span class="tag tag-yellow">중간</span></td>
+        </tr>
+        <tr>
+          <td><b>다중 심볼 포트폴리오</b></td>
+          <td>BTC/ETH/SOL 동시 관리 + 포트폴리오 리밸런싱</td>
+          <td><span class="tag tag-purple">낮음</span></td>
+        </tr>
+        <tr>
+          <td><b>강화학습 (RL)</b></td>
+          <td>과거 데이터로 에이전트 훈련 → 점수 가중치 자동 최적화</td>
+          <td><span class="tag tag-purple">연구</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Warnings -->
+  <h2><span class="icon">⚠️</span> 주의사항</h2>
+  <div style="background:#450a0a22;border:1px solid #450a0a;border-radius:10px;padding:20px 24px;">
+    <ul style="color:var(--muted);list-style:none;display:grid;gap:8px">
+      <li>🔴 <b style="color:var(--text)">백테스트 성능 ≠ 실제 수익</b> — 과적합(Overfitting) 위험 항상 존재</li>
+      <li>🔴 <b style="color:var(--text)">AI 모델 환각(Hallucination)</b> — FinBERT 판단 오류 가능성 존재</li>
+      <li>🟡 <b style="color:var(--text)">실거래 전 Testnet 필수 검증</b> — BYBIT_TESTNET=true 상태에서 충분히 테스트</li>
+      <li>🟡 <b style="color:var(--text)">반자동 모드 권장</b> — SCORE_AUTO_TRADE_MIN을 높게 설정해 사람이 최종 승인</li>
+      <li>🟢 <b style="color:var(--text)">Mock 모드로 먼저</b> — MOCK_MODE=true 상태에서 전체 파이프라인 충분히 익힌 후 전환</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>AI Crypto Trading System v0.3 &nbsp;·&nbsp; 개발 보고서 생성: 2026-05-28 &nbsp;·&nbsp;
+    <a href="http://localhost:8000/docs" target="_blank">Swagger UI</a> &nbsp;·&nbsp;
+    <a href="http://localhost:8000/dashboard" target="_blank">Dashboard</a> &nbsp;·&nbsp;
+    <a href="https://github.com/Eilhwan/ai-crypto-trading" target="_blank">GitHub</a>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -24,7 +24,7 @@ async def run_analysis_cycle() -> None:
     from services.market import get_market_data
     from services.scoring import calculate_total_score, determine_action, build_reasoning
     from services.notifier import notify_analysis, notify_trade
-    from traders.bybit_trader import execute_trade, build_trade_signal
+    from traders.bybit_trader import execute_trade, build_trade_signal, calculate_dynamic_qty
 
     _last_run = datetime.now(timezone.utc)
 
@@ -69,7 +69,8 @@ async def run_analysis_cycle() -> None:
             )
 
             if action == TradeAction.AUTO_TRADE:
-                signal = build_trade_signal(symbol=symbol, score=score, qty=0.001, reason=reasoning)
+                qty = calculate_dynamic_qty(symbol, score)
+                signal = build_trade_signal(symbol=symbol, score=score, qty=qty, reason=reasoning)
                 result = await execute_trade(signal)
                 logger.info(f"[{symbol}] auto-trade: {result.message}")
                 await notify_trade(result)

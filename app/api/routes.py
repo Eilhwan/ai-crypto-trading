@@ -8,7 +8,7 @@ from loguru import logger
 from models.schemas import (
     AnalyzeRequest, AnalyzeResponse, TradeAction, TradeResult, MarketData,
     WebhookNewsRequest, FearGreedResponse, SchedulerStatus,
-    BacktestConfig, BacktestResult,
+    BacktestConfig, BacktestResult, RiskStatus,
 )
 from services.sentiment import analyze_sentiment
 from services.market import get_market_data
@@ -16,7 +16,8 @@ from services.scoring import calculate_total_score, determine_action, build_reas
 from services.notifier import notify_analysis, notify_trade
 from services.fear_greed import get_fear_greed, get_fear_greed_response
 from services.scheduler import get_scheduler_status, run_analysis_cycle
-from traders.bybit_trader import execute_trade, build_trade_signal
+from services.risk_manager import get_risk_status, reset_risk_state
+from traders.bybit_trader import execute_trade, build_trade_signal, calculate_dynamic_qty
 from backtest.engine import run_backtest
 from database.db import get_db, AnalysisLog, TradeLog, BacktestLog
 
@@ -57,9 +58,22 @@ async def _run_analyze(
     )
 
     if action == TradeAction.AUTO_TRADE:
-        signal = build_trade_signal(symbol=symbol, score=score, qty=0.001, reason=reasoning)
+        qty = calculate_dynamic_qty(symbol, score)
+        signal = build_trade_signal(symbol=symbol, score=score, qty=qty, reason=reasoning)
         trade_result = await execute_trade(signal)
         logger.info(f"Auto trade result: {trade_result.message}")
+        if trade_result.signal:
+            db.add(TradeLog(
+                symbol=symbol,
+                side=signal.side,
+                qty=qty,
+                price=0.0,
+                order_id=trade_result.order_id or "",
+                score=score,
+                success=trade_result.success,
+                reason=reasoning,
+            ))
+            await db.commit()
         await notify_trade(trade_result)
 
     if action in (TradeAction.NOTIFY, TradeAction.AUTO_TRADE):
@@ -220,6 +234,19 @@ async def trade_logs(limit: int = 20, db: AsyncSession = Depends(get_db)):
     ]
 
 
+@router.get("/risk/status", response_model=RiskStatus)
+async def risk_status():
+    return get_risk_status()
+
+
+@router.post("/risk/reset")
+async def risk_reset(reason: str = "수동 리셋"):
+    reset_risk_state(reason)
+    return {"message": f"리스크 상태 초기화: {reason}", "status": get_risk_status()}
+
+
 @router.get("/health")
 async def health():
-    return {"status": "ok"}
+    from services.risk_manager import is_trading_halted
+    halted, halt_reason = is_trading_halted()
+    return {"status": "ok", "trading_halted": halted, "halt_reason": halt_reason if halted else None}
