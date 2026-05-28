@@ -6,8 +6,8 @@ from loguru import logger
 
 MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
 
-_POSITIVE_KEYWORDS = {"etf", "approved", "surge", "bull", "rally", "gain", "buy", "record", "high", "adoption"}
-_NEGATIVE_KEYWORDS = {"crash", "ban", "hack", "plunge", "drop", "sell", "fear", "loss", "bearish", "fraud"}
+_POSITIVE_KEYWORDS = {"etf", "approved", "surge", "bull", "rally", "gain", "buy", "record", "high", "adoption", "partnership", "upgrade", "launch", "growth"}
+_NEGATIVE_KEYWORDS = {"crash", "ban", "hack", "plunge", "drop", "sell", "fear", "loss", "bearish", "fraud", "reject", "rejects", "rejected", "scam", "lawsuit", "fine", "illegal", "bankrupt", "stolen", "attack"}
 
 
 def is_mock() -> bool:
