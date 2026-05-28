@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Float, DateTime, Text, func
+from sqlalchemy import String, Float, DateTime, Text, Boolean, Index, func
 from datetime import datetime
 import os
 
@@ -38,6 +38,14 @@ class TradeLog(Base):
     score: Mapped[float] = mapped_column(Float)
     success: Mapped[bool] = mapped_column(default=False)
     reason: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class SeenUrl(Base):
+    __tablename__ = "seen_urls"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str] = mapped_column(String(500), unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

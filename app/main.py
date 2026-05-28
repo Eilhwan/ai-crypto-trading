@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from loguru import logger
@@ -6,6 +7,7 @@ import os
 
 from database.db import init_db
 from api.routes import router
+from services.scheduler import setup_scheduler, run_analysis_cycle
 
 # Configure loguru
 logger.remove()
@@ -18,14 +20,24 @@ async def lifespan(app: FastAPI):
     logger.info("Starting AI Trading System...")
     await init_db()
     logger.info("Database initialized.")
+
+    scheduler = setup_scheduler()
+    scheduler.start()
+    logger.info("Scheduler started.")
+
+    # Run one cycle immediately on startup so the first interval isn't a cold wait
+    asyncio.create_task(run_analysis_cycle())
+
     yield
+
+    scheduler.shutdown(wait=False)
     logger.info("Shutting down.")
 
 
 app = FastAPI(
     title="AI Crypto Trading System",
     description="뉴스 감성 분석 + 기술적 지표 기반 암호화폐 트레이딩 API",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -36,6 +48,6 @@ app.include_router(router, prefix="/api/v1")
 async def root():
     return {
         "name": "AI Crypto Trading System",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "docs": "/docs",
     }

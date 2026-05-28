@@ -1,43 +1,51 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from loguru import logger
 
 from models.schemas import (
-    AnalyzeRequest, AnalyzeResponse, TradeAction, TradeResult, MarketData
+    AnalyzeRequest, AnalyzeResponse, TradeAction, TradeResult, MarketData,
+    WebhookNewsRequest, FearGreedResponse, SchedulerStatus,
 )
 from services.sentiment import analyze_sentiment
 from services.market import get_market_data
 from services.scoring import calculate_total_score, determine_action, build_reasoning
 from services.notifier import notify_analysis, notify_trade
+from services.fear_greed import get_fear_greed, get_fear_greed_response
+from services.scheduler import get_scheduler_status, run_analysis_cycle
 from traders.bybit_trader import execute_trade, build_trade_signal
 from database.db import get_db, AnalysisLog, TradeLog
 
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
-async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
-    logger.info(f"Analyze request: {len(request.news)} news items for {request.symbol}")
+async def _run_analyze(
+    news,
+    symbol: str,
+    fear_greed_index,
+    db: AsyncSession,
+) -> AnalyzeResponse:
+    if fear_greed_index is None:
+        fear_greed_index = await get_fear_greed()
 
-    sentiments = await analyze_sentiment(request.news)
-    market_data = await get_market_data(request.symbol)
-    score, breakdown = calculate_total_score(sentiments, market_data, request.fear_greed_index)
+    sentiments = await analyze_sentiment(news)
+    market_data = await get_market_data(symbol)
+    score, breakdown = calculate_total_score(sentiments, market_data, fear_greed_index)
     action = determine_action(score)
     reasoning = build_reasoning(score, breakdown, action)
 
-    log = AnalysisLog(
-        symbol=request.symbol,
+    db.add(AnalysisLog(
+        symbol=symbol,
         score=score,
         action=action.value,
-        news_summary="; ".join(n.title for n in request.news[:5]),
+        news_summary="; ".join(n.title for n in news[:5]),
         reasoning=reasoning,
-    )
-    db.add(log)
+    ))
     await db.commit()
 
     response = AnalyzeResponse(
-        symbol=request.symbol,
+        symbol=symbol,
         score=score,
         action=action,
         breakdown=breakdown,
@@ -46,12 +54,7 @@ async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
     )
 
     if action == TradeAction.AUTO_TRADE:
-        signal = build_trade_signal(
-            symbol=request.symbol,
-            score=score,
-            qty=0.001,
-            reason=reasoning,
-        )
+        signal = build_trade_signal(symbol=symbol, score=score, qty=0.001, reason=reasoning)
         trade_result = await execute_trade(signal)
         logger.info(f"Auto trade result: {trade_result.message}")
         await notify_trade(trade_result)
@@ -60,6 +63,39 @@ async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
         await notify_analysis(response)
 
     return response
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+async def analyze(request: AnalyzeRequest, db: AsyncSession = Depends(get_db)):
+    logger.info(f"Analyze request: {len(request.news)} news items for {request.symbol}")
+    return await _run_analyze(request.news, request.symbol, request.fear_greed_index, db)
+
+
+@router.post("/webhook/news", response_model=AnalyzeResponse)
+async def webhook_news(request: WebhookNewsRequest, db: AsyncSession = Depends(get_db)):
+    expected = os.getenv("WEBHOOK_TOKEN", "")
+    if not expected or request.token != expected:
+        raise HTTPException(status_code=401, detail="Invalid webhook token")
+    logger.info(f"Webhook: {len(request.news)} news items for {request.symbol}")
+    return await _run_analyze(request.news, request.symbol, request.fear_greed_index, db)
+
+
+@router.get("/fear-greed", response_model=FearGreedResponse)
+async def fear_greed():
+    return await get_fear_greed_response()
+
+
+@router.get("/scheduler/status", response_model=SchedulerStatus)
+async def scheduler_status():
+    return get_scheduler_status()
+
+
+@router.post("/scheduler/trigger")
+async def scheduler_trigger():
+    logger.info("Manual scheduler trigger requested")
+    import asyncio
+    asyncio.create_task(run_analysis_cycle())
+    return {"message": "Analysis cycle triggered"}
 
 
 @router.get("/market/{symbol}", response_model=MarketData)
@@ -76,7 +112,7 @@ async def manual_trade(symbol: str, side: str, qty: float, db: AsyncSession = De
     result = await execute_trade(signal)
 
     if result.signal:
-        log = TradeLog(
+        db.add(TradeLog(
             symbol=symbol,
             side=side,
             qty=qty,
@@ -85,8 +121,7 @@ async def manual_trade(symbol: str, side: str, qty: float, db: AsyncSession = De
             score=0.0,
             success=result.success,
             reason="수동 거래",
-        )
-        db.add(log)
+        ))
         await db.commit()
 
     return result

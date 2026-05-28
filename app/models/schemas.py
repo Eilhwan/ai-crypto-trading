@@ -18,7 +18,7 @@ class NewsItem(BaseModel):
 class AnalyzeRequest(BaseModel):
     news: list[NewsItem]
     symbol: str = "BTCUSDT"
-    fear_greed_index: float = 50.0  # 0=extreme fear, 100=extreme greed
+    fear_greed_index: Optional[float] = None  # None = auto-fetch from API
 
 
 class SentimentResult(BaseModel):
@@ -70,3 +70,26 @@ class MarketData(BaseModel):
     volume_change_pct: Optional[float] = None
     bb_upper: Optional[float] = None
     bb_lower: Optional[float] = None
+
+
+class WebhookNewsRequest(BaseModel):
+    token: str
+    symbol: str = "BTCUSDT"
+    news: list[NewsItem]
+    fear_greed_index: Optional[float] = None
+
+
+class FearGreedResponse(BaseModel):
+    value: float
+    classification: str
+    cached: bool
+    fetched_at: Optional[str] = None
+
+
+class SchedulerStatus(BaseModel):
+    running: bool
+    interval_minutes: int
+    watch_symbols: list[str]
+    next_run: Optional[str] = None
+    last_run: Optional[str] = None
+    last_run_articles: int = 0
