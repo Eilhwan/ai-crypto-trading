@@ -1,27 +1,66 @@
 services:
-  trading-api:
-    build: ./app
-    container_name: trading-api
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./app:/app
-      - ./data:/app/data
-    env_file:
-      - .env
+
+  # ── OpenClaw Gateway ────────────────────────────────────────────────────────
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-alpine/openclaw:latest}
+    container_name: openclaw-gateway
     restart: unless-stopped
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      CLAUDE_AI_SESSION_KEY:  ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE:      ${CLAUDE_WEB_COOKIE:-}
+      OPENAI_API_KEY:         ${OPENAI_API_KEY:-}
+    volumes:
+      - ./.openclaw_config:/home/node/.openclaw
+      - ./.openclaw_workspace:/home/node/.openclaw/workspace
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
     extra_hosts:
-      - "host.docker.internal:host-gateway"   # OpenClaw(18789), Ollama(11434) 접근용
-    depends_on:
-      ollama:
-        condition: service_healthy
+      - "host.docker.internal:host-gateway"
+    init: true
+    command:
+      - "node"
+      - "dist/index.js"
+      - "gateway"
+      - "--bind"
+      - "lan"
+      - "--port"
+      - "18789"
+      - "--auth"
+      - "token"
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:18789/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 20s
 
+  # ── OpenClaw CLI (대화형 / cron 관리용) ──────────────────────────────────────
+  openclaw-cli:
+    image: ${OPENCLAW_IMAGE:-alpine/openclaw:latest}
+    container_name: openclaw-cli
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: "1"
+      BROWSER: echo
+    volumes:
+      - ./.openclaw_config:/home/node/.openclaw
+      - ./.openclaw_workspace:/home/node/.openclaw/workspace
+    stdin_open: true
+    tty: true
+    init: true
+    depends_on:
+      openclaw-gateway:
+        condition: service_healthy
+    entrypoint: ["node", "dist/index.js"]
+
+  # ── Ollama (LLM) ─────────────────────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -36,6 +75,34 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # ── Trading API (Full 모드) ──────────────────────────────────────────────────
+  trading-api:
+    build: ./app
+    container_name: trading-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      # Docker 내부 네트워크 → 서비스명으로 직접 통신
+      OPENCLAW_URL: http://openclaw-gateway:18789
+      OLLAMA_URL:   http://ollama:11434
+    restart: unless-stopped
+    depends_on:
+      openclaw-gateway:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   ollama_data:

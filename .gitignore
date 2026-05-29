@@ -11,3 +11,12 @@ venv/
 dist/
 build/
 .pytest_cache/
+
+# OpenClaw — 민감 파일 (토큰, 키 포함)
+.openclaw_config/identity/
+.openclaw_config/devices/
+.openclaw_config/openclaw.json
+.openclaw_config/openclaw.json.*
+.openclaw_config/agents/
+.openclaw_config/logs/
+.openclaw_workspace/
